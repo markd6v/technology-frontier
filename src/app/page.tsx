@@ -8,8 +8,8 @@ import { LAYERS, registry, type Layer } from "@/lib/registry";
 export const dynamic = "force-dynamic";
 
 const DAYS = 7;
-const LAYER_ABBR: Record<Layer, string> = { scientific: "Sci", engineering: "Eng", product: "Prod", commercial: "Comm" };
-const GRID = "grid grid-cols-[5.5rem_repeat(4,minmax(0,1fr))] gap-x-3 sm:grid-cols-[7.5rem_repeat(4,minmax(0,1fr))] sm:gap-x-4";
+const LAYER_ABBR: Record<Layer, string> = { scientific: "Sci", engineering: "Eng", product: "Prod" };
+const GRID = "grid grid-cols-[5.5rem_repeat(3,minmax(0,1fr))] gap-x-3 sm:grid-cols-[7.5rem_repeat(3,minmax(0,1fr))] sm:gap-x-4";
 
 export default async function Home() {
   const { domains, sources } = registry();
@@ -26,8 +26,8 @@ export default async function Home() {
   return (
     <>
       <PageHeader title="Where the frontier is moving">
-        Items from the last {DAYS} days, by domain and layer. Look for rows where science and engineering are busy
-        while product and commercial are still quiet. <MoreLink href="/framework">How to read this</MoreLink>
+        New results, engineering work and releases from the last {DAYS} days, by domain. Every item comes from a
+        paper, a lab, or an official release channel. <MoreLink href="/framework">How to read this</MoreLink>
       </PageHeader>
 
       <div role="table" aria-label={`Items per domain and layer, last ${DAYS} days`} className="text-sm">

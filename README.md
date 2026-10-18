@@ -1,6 +1,6 @@
 # technology-frontier
 
-Frontier Radar: one feed of research, engineering, product and commercial signals from the sources in `content/sources.yaml`, grouped by 15 technology domains. Scope and design live in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Frontier Radar: an overview of recent discoveries and releases across 15 technology domains, taken only from primary sources (journals, curated preprints, lab research posts, official release channels) listed in `content/sources.yaml`. Scope and design live in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Local setup
 
@@ -18,14 +18,14 @@ npm run dev
 | Command | Does |
 |---|---|
 | `npm run job ingest` | Fetch sources whose `next_due_at` has passed. `-- --force` ignores it; `-- --source=a,b` limits to some ids |
-| `npm run job maintenance` | Sync `content/sources.yaml` into the DB |
+| `npm run job maintenance` | Sync `content/sources.yaml` into the DB and delete items of sources removed from it |
 | `npm run validate:content` | Validate all YAML in `content/` |
 | `npm test` | Unit and connector tests (recorded fixtures, no network) |
 | `npm run db:generate` | New migration after editing `src/lib/db/schema.ts` |
 
 ## Adding a source
 
-Add an entry to `content/sources.yaml` (the header comment lists the allowed values), then run `npm run validate:content`. Connector options are the zod `config` schema in `src/lib/connectors/<method>.ts`. For a `page-monitor`, check that the listing page has the links in its static HTML (`curl` it). Pages that render with JavaScript stay `manual`.
+Add an entry to `content/sources.yaml` (the header comment lists the allowed values and the optional `filter`), then run `npm run validate:content`. Before adding a feed, read its last few dozen titles: if company news, customer stories or commentary outnumber results and releases, filter it by category or title, or leave it out. Connector options are the zod `config` schema in `src/lib/connectors/<method>.ts`. For a `page-monitor`, check that the listing page has the links in its static HTML (`curl` it). Pages that render with JavaScript stay `manual`.
 
 ## Deploying
 

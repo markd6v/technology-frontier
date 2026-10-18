@@ -1,12 +1,12 @@
 import { and, eq, gt } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { runIngest, syncSources } from "@/lib/pipeline/ingest";
+import { pruneItems, runIngest, syncSources } from "@/lib/pipeline/ingest";
 
 export const JOBS = {
   /** Hourly (GitHub Actions): fetch every source that is due. */
   ingest: async (args: { sourceIds?: string[]; force?: boolean }) => runIngest(args),
-  /** Daily (Vercel Cron): registry sync only; also a safety net if the hourly trigger is down. */
-  maintenance: async () => ({ sources: await syncSources() }),
+  /** Daily (Vercel Cron): registry sync, then drop items of removed sources. */
+  maintenance: async () => ({ sources: await syncSources(), ...(await pruneItems()) }),
 } as const;
 
 export type JobName = keyof typeof JOBS;

@@ -3,7 +3,12 @@ import { normalizeArxivId } from "@/lib/pipeline/canonicalize";
 import { excerpt, parseDate } from "@/lib/text";
 import { defineConnector } from "./types";
 
-const config = z.object({}).default({});
+const config = z
+  .object({
+    /** Papers below this many upvotes are skipped; they are picked up on a later run if they climb. */
+    minUpvotes: z.number().int().nonnegative().default(0),
+  })
+  .default({ minUpvotes: 0 });
 
 const response = z.array(
   z.object({
@@ -24,27 +29,29 @@ const response = z.array(
 export const hfPapersConnector = defineConnector({
   method: "hf-papers",
   configSchema: config,
-  async fetch({ http }) {
+  async fetch({ config, http }) {
     const res = await http.get("https://huggingface.co/api/daily_papers", { accept: "application/json" });
     const papers = response.parse(JSON.parse(res.text));
     return {
-      items: papers.map(({ paper, publishedAt, numComments }) => {
-        const id = normalizeArxivId(paper.id);
-        const signals: Record<string, number> = {};
-        if (paper.upvotes != null) signals.hf_upvotes = paper.upvotes;
-        if (numComments != null) signals.hf_comments = numComments;
-        return {
-          url: `https://arxiv.org/abs/${id}`,
-          externalKind: "arxiv" as const,
-          externalId: id,
-          title: paper.title.replace(/\s+/g, " ").trim(),
-          authors: paper.authors?.flatMap((a) => a.name ?? []).slice(0, 20),
-          publishedAt: parseDate(paper.publishedAt ?? publishedAt),
-          excerpt: excerpt(paper.summary),
-          abstract: paper.summary,
-          signals,
-        };
-      }),
+      items: papers
+        .filter(({ paper }) => (paper.upvotes ?? 0) >= config.minUpvotes)
+        .map(({ paper, publishedAt, numComments }) => {
+          const id = normalizeArxivId(paper.id);
+          const signals: Record<string, number> = {};
+          if (paper.upvotes != null) signals.hf_upvotes = paper.upvotes;
+          if (numComments != null) signals.hf_comments = numComments;
+          return {
+            url: `https://arxiv.org/abs/${id}`,
+            externalKind: "arxiv" as const,
+            externalId: id,
+            title: paper.title.replace(/\s+/g, " ").trim(),
+            authors: paper.authors?.flatMap((a) => a.name ?? []).slice(0, 20),
+            publishedAt: parseDate(paper.publishedAt ?? publishedAt),
+            excerpt: excerpt(paper.summary),
+            abstract: paper.summary,
+            signals,
+          };
+        }),
     };
   },
 });

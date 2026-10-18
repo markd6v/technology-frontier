@@ -25,9 +25,9 @@ export default function PeoplePage() {
   return (
     <>
       <PageHeader title="People">
-        Who recognizes the implications earliest. Chosen for their contributions, technical insight, or closeness to
-        important work, not follower counts. For people who publish rarely, follow their papers and organizations
-        instead.
+        People whose work or analysis helps make sense of new results. Chosen for their contributions, technical
+        insight, or closeness to important work, not follower counts. For people who publish rarely, follow their
+        papers and organizations instead.
       </PageHeader>
 
       <Section title="Shortlist">
@@ -46,8 +46,8 @@ export default function PeoplePage() {
 
       <Section title="Cross-disciplinary interpreters">
         <p className="mb-3 text-muted">
-          They connect developments across industries and explain the economics. Investors and founders have a
-          stake in the technologies they promote, so treat their views as hypotheses, not independent confirmation.
+          They read widely, test new releases, and explain what a result does and doesn&apos;t show. Treat their
+          views as informed opinion, not independent confirmation.
         </p>
         <Rows>
           {reference.interpreters.map((p) => (

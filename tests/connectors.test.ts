@@ -24,6 +24,13 @@ describe("rss", () => {
     }
   });
 
+  it("keeps feed categories for source filters", async () => {
+    const http = fakeHttp([[/ieee/, fixture("ieee.xml")]]);
+    const config = parse(rssConnector, { url: "https://spectrum.ieee.org/feeds/feed.rss" });
+    const { items } = await rssConnector.fetch(ctx(config, http));
+    expect(items[0].categories).toContain("Variable-frequency-drive");
+  });
+
   it("titlesOnly drops body text", async () => {
     const http = fakeHttp([[/ieee/, fixture("ieee.xml")]]);
     const config = parse(rssConnector, { url: "https://spectrum.ieee.org/feeds/feed.rss", titlesOnly: true });
@@ -75,6 +82,15 @@ describe("hf-papers", () => {
     expect(items).toHaveLength(3);
     expect(items[0].url).toMatch(/^https:\/\/arxiv\.org\/abs\//);
     expect(items[0].signals?.hf_upvotes).toBeTypeOf("number");
+  });
+});
+
+describe("hf-papers minUpvotes", () => {
+  it("skips papers below the floor", async () => {
+    const http = fakeHttp([[/huggingface/, fixture("hf.json")]]);
+    const { items } = await hfPapersConnector.fetch(ctx(parse(hfPapersConnector, { minUpvotes: 20 }), http));
+    expect(items).toHaveLength(1);
+    expect(items[0].signals?.hf_upvotes).toBeGreaterThanOrEqual(20);
   });
 });
 

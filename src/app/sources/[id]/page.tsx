@@ -32,6 +32,21 @@ export default async function SourcePage({ params }: Params) {
     ["Method", `${source.method} · ${source.frequency}`],
     ["Reliability", source.reliability],
   ];
+  if (source.filter) {
+    const f = source.filter;
+    const rules = [
+      f.categories && `categories: ${f.categories.join(", ")}`,
+      f.includeTitle && `title must match /${f.includeTitle}/`,
+      f.excludeTitle && `drop titles matching /${f.excludeTitle}/`,
+      f.excludeUrl && `drop URLs matching /${f.excludeUrl}/`,
+    ].filter(Boolean);
+    facts.push([
+      "Filter",
+      <span key="f" className="break-all font-mono text-[13px]">
+        {rules.join("; ")}
+      </span>,
+    ]);
+  }
   if (source.method !== "manual") {
     facts.push(
       ["Last success", timeAgo(h?.lastSuccessAt)],

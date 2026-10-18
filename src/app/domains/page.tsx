@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Domains" };
 
 const TIER_INTRO = {
-  deep: "The fields where a software team can most quickly turn insight into an experiment.",
+  deep: "The fields moving fastest right now, and the ones a software engineer can most easily test first-hand.",
   regular: null,
   broad: "Ingested and shown here, but they skip LLM triage until Phase 2.",
 } as const;
@@ -21,8 +21,8 @@ export default async function DomainsPage() {
   return (
     <>
       <PageHeader title="Domains">
-        Relevance rates entrepreneurial opportunity, not technological importance. Coverage depth reflects where a
-        technical founder can test ideas fastest. Counts are items in the last 7 days.
+        Relevance rates how much is changing in a field right now. Coverage depth reflects how closely it is
+        followed. Counts are items in the last 7 days.
       </PageHeader>
 
       {TIERS.map((tier) => (

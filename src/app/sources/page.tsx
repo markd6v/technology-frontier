@@ -31,9 +31,9 @@ export default async function SourcesPage() {
   return (
     <>
       <PageHeader title="Sources">
-        A paper on arXiv is the earliest signal, a working repo is stronger evidence, a product release shows
-        someone thinks it&apos;s ready, and customer adoption shows it creates value. No single source covers all
-        four stages.
+        Only primary sources: peer-reviewed journals, curated preprints, lab research posts and official release
+        channels. Business news, commentary and general tech news are left out, and each source can drop items by
+        feed category or title.
       </PageHeader>
 
       {failing.length > 0 && (
@@ -103,24 +103,6 @@ export default async function SourcesPage() {
               <p className="text-sm text-muted">
                 {u.provides}. {u.advantage}
               </p>
-            </div>
-          ))}
-        </Rows>
-      </Section>
-
-      <Section title="Commercial intelligence">
-        <Rows>
-          {reference.commercialSignals.map((c) => (
-            <div key={c.signal} className="py-3">
-              <div>{c.signal}</div>
-              <p className="text-sm text-muted">{c.tells}</p>
-              <div className="mt-1 flex flex-wrap gap-x-3 text-sm">
-                {c.sources.map((s) => (
-                  <ExternalLink key={s.name} href={s.url} className="text-accent hover:underline">
-                    {s.name}
-                  </ExternalLink>
-                ))}
-              </div>
             </div>
           ))}
         </Rows>

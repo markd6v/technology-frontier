@@ -15,6 +15,8 @@ export type NormalizedItem = {
   abstract?: string;
   /** Per-mention numbers: hn_points, stars, upvotes… */
   signals?: Record<string, number>;
+  /** Feed categories, matched by a source's `filter.categories`. */
+  categories?: string[];
   /** Overrides the source's domains for this item (e.g. per-query CT.gov domains). */
   domains?: string[];
 };

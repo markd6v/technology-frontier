@@ -125,7 +125,7 @@ type NormalizedItem = {
   excerpt?: string;                    // ≤300 chars, plain text
   abstract?: string;                   // only where licensed (arXiv/bioRxiv metadata, CT.gov)
   signals?: Record<string, number>;    // hn_points, stars, stars_7d, comments...
-  linkedUrls?: string[];               // e.g. the article an HN post points to
+  categories?: string[];               // feed categories, matched by the source's `filter`
 };
 ```
 
@@ -136,7 +136,7 @@ A connector is a pure function of (config, state, HTTP). It never writes to the 
 1. Sync the registry: upsert `sources` rows from YAML (id, config hash, enabled). Disable rows whose YAML entry was removed.
 2. Select due sources: `enabled AND next_due_at <= now()`, ordered by `next_due_at`.
 3. Run connectors with concurrency 4 until the **240 s budget** is used up. Sources left over stay due for the next run.
-4. For each item: **canonicalize**. Lowercase the host, force https, strip `utm_*`/`ref`/fragments, map arXiv `pdf/`→`abs/` and drop the version suffix, and use a DOI when present. Then **upsert** on `canonical_url`. If the item already exists, add an `item_mentions` row instead (the same paper arriving from arXiv, HF Papers and HN is one item with three mentions; mentions are a signal in their own right).
+4. Apply the source's `filter` (categories, title and URL patterns from the registry). Items that fail are dropped before storage. Then, for each item: **canonicalize**. Lowercase the host, force https, strip `utm_*`/`ref`/fragments, map arXiv `pdf/`→`abs/` and drop the version suffix, and use a DOI when present. Then **upsert** on `canonical_url`. If the item already exists, add an `item_mentions` row instead (the same paper arriving from HF Papers and a lab blog is one item with two mentions; mentions are a signal in their own right).
 5. Update `source_state`: cursor, ETag/Last-Modified, `last_success_at` or `last_error`, `consecutive_failures`, `next_due_at = now + frequency`. On failure, back off exponentially, capped at 24 h.
 6. Run the **prefilter** (§7.1) on new items in the same job. It's cheap and needs no LLM.
 
@@ -151,11 +151,12 @@ The YAML config: `{ listUrl, linkSelector, dateSelector?, allowPrefix, minLinks 
 - Each new link's page is fetched once, for `<title>`, `og:description` and `article:published_time`. That fills `title`, `excerpt` and `publishedAt`.
 
 ### 5.4 Source-specific notes
-- **arXiv:** the API with `sortBy=submittedDate`, cursor = last seen submitted timestamp, at most 1 request every 3 s (the arXiv API's courtesy rule).
-- **bioRxiv:** `details/biorxiv/{yesterday}/{today}/{cursor}`, paged by 100, filtered client-side by `category` against the registry list.
-- **ClinicalTrials.gov:** v2 query with `query.cond`/`query.intr` from config, `filter.advanced` for phase, sorted by `LastUpdatePostDate`.
-- **GitHub "trending" stand-in:** search for `created:>{now-30d}`, sorted by stars, top 50. Store `stars` in `item_mentions.signals` on every run. The 7-day star delta is computed from those mention snapshots (feeds the Phase 3 acceleration work).
-- **HN:** `hnrss.org/best`. Keep `points` and `comments`. An HN item whose link canonicalizes to an existing item becomes a *mention* of that item.
+- **HF Daily Papers:** papers below `minUpvotes` are skipped. Because each run re-reads the day's list, a paper that climbs past the floor later is picked up then.
+- **One feed, two sources:** OpenAI publishes research and releases in one RSS feed. Two registry entries read it, each keeping different feed categories, so research lands in the scientific layer and releases in the product layer.
+- **Unused connectors:** `arxiv`, `biorxiv`, `ctgov` and `github-search` stay in the code, but no registry entry uses them. Their raw output (every new preprint, trial or popular repo) was mostly noise for this site.
+
+### 5.5 Pruning
+The daily `maintenance` job deletes mentions from sources removed from the registry, then deletes items left with no mentions, and re-derives each item's `layer` and `kind` from its first source. Renaming a source's `id` is therefore the way to apply a tightened filter to items already stored.
 
 ## 6. Data model (Phase 0–1)
 
@@ -182,7 +183,7 @@ triage           item_id PK→items, relevant bool, domains text[], cross_tags t
                  layer, novelty smallint, reason text, llm_call_id→llm_calls
 developments     item_id PK→items, technology, subfield, claim, previous_limitation,
                  new_capability, quantitative_improvement jsonb NULL,
-                 evidence_type, claim_status, maturity, commercial_implications,
+                 evidence_type, claim_status, maturity, significance,
                  confidence smallint, confidence_reason, evidence_item_ids bigint[],
                  llm_call_id→llm_calls, prompt_version
 
@@ -198,7 +199,7 @@ feedback         id PK, target_kind, target_id, rating smallint, note, created_a
 login_attempts   ip_hash, at                       -- rate limiting
 ```
 
-**Storage estimate:** ~600 raw items/day × ~1.2 KB (excerpt + abstract + row overhead) ≈ 0.7 MB/day ≈ **260 MB/year**. That leaves room in 1 GB for indexes, mentions and Phase 2 embeddings (1024-dim float4 ≈ 4 KB × ~20 developments/day ≈ 30 MB/year). Abstracts make up the bulk. Once storage passes 70%, the health page warns. The fix is upgrading Neon, not deleting data (R§9 retention).
+**Storage estimate:** ~600 raw items/day × ~1.2 KB (excerpt + abstract + row overhead) ≈ 0.7 MB/day ≈ **260 MB/year**. That leaves room in 1 GB for indexes, mentions and Phase 2 embeddings (1024-dim float4 ≈ 4 KB × ~20 developments/day ≈ 30 MB/year). Abstracts make up the bulk. Once storage passes 70%, the health page warns. The fix is upgrading Neon, not deleting data (R§9 retention). With the primary-source registry the real volume is closer to 100 items/day.
 
 **Phase 2 adds:** `reports(id, kind enum(weekly, monthly), period, status, body jsonb, UNIQUE(kind, period))`, `embeddings(item_id, model, vector(1024))`, `trends`, `trend_members(trend_id, item_id, added_by)`, `trend_scores`.
 **Phase 3 adds:** `metric_series(kind, key, date, value)` for OpenAlex concept counts, repo stars and package downloads.
@@ -208,8 +209,6 @@ login_attempts   ip_hash, at                       -- rate limiting
 ### 7.1 Prefilter (rules, no LLM)
 Applied per source tier and per source, with all config in `content/keywords.yaml` and `config.yaml`:
 - `tier = broad` → status `filtered_out` (reason `broad-tier`), still shown in the feed (R§3).
-- arXiv: passes if the same paper has an HF Daily Papers mention **or** the title/abstract matches the domain keyword list. Otherwise filtered out.
-- HN: passes if `points >= 100`.
 - Everything else from deep- and regular-tier sources passes.
 
 Passing items → `queued`.
@@ -225,7 +224,7 @@ Passing items → `queued`.
 - **Extract:** submit one Message Batch (50% price) with one request per item: the item plus any mentions' titles → Development fields (R§6.3) as structured output.
 - The hourly job polls open batches and writes results, then `revalidateTag('feed')`.
 
-### 7.4 Weekly / monthly reports (Phase 2–3)
+### 7.4 Weekly / monthly overviews (Phase 2–3)
 - These are Opus synchronous jobs that read developments and trends, never raw items.
 - **Link integrity:** the model can only refer to items by `item_id`. Every URL on the page and in any email comes from the `items` table, never from model text. Entries with unknown IDs are dropped.
 - If the budget is exhausted, the report is skipped and the health page says so.
@@ -285,8 +284,8 @@ All times are Asia/Dubai (UTC+4). Vercel Hobby fires anywhere within the hour, s
 | `hourly` | GitHub Actions | `15 * * * *` | every hour | ingest due sources → prefilter → triage → poll open batches |
 | `extract` (P1) | Vercel Cron | `0 0 * * *` | 04:00–04:59 | select top 25 → submit extraction batch |
 | `ingest` (safety net) | Vercel Cron | `30 1 * * *` | 05:30–06:29 | same as the hourly ingest, in case GitHub Actions is down |
-| `weekly` (P2) | Vercel Cron | `0 4 * * 6` | Sat 08:00–08:59 | weekly report |
-| `monthly` (P3) | Vercel Cron | `0 4 1 * *` | 1st, 08:00–08:59 | monthly report |
+| `weekly` (P2) | Vercel Cron | `0 4 * * 6` | Sat 08:00–08:59 | weekly overview |
+| `monthly` (P3) | Vercel Cron | `0 4 1 * *` | 1st, 08:00–08:59 | monthly overview |
 | `maintenance` | Vercel Cron | `0 23 * * *` | 03:00–03:59 | registry sync, storage check, failure alerts |
 
 - A job doesn't start while a `job_runs` row for the same job is `running` and less than 6 minutes old, so overlapping triggers do nothing. (Advisory locks don't survive Neon's transaction-mode pooler.)
@@ -315,7 +314,6 @@ All times are Asia/Dubai (UTC+4). Vercel Hobby fires anywhere within the hour, s
 | `/people` | 0 |
 | `/reports`, `/reports/[kind]/[period]` | 2 |
 | `/trends`, `/trends/[id]` | 2 |
-| `/opportunities` | 3 |
 | `/login` | 0 |
 | `/api/jobs/[name]` (POST, secret) | 0 |
 | `/api/me` | 0 |

@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const TIERS = ["deep", "regular", "broad"] as const;
-export const LAYERS = ["scientific", "engineering", "product", "commercial"] as const;
-export const KINDS = ["research", "product", "newsletter", "community", "commercial-data"] as const;
+export const LAYERS = ["scientific", "engineering", "product"] as const;
+export const KINDS = ["research", "release", "benchmark", "press"] as const;
 export const METHODS = [
   "rss",
   "arxiv",
@@ -50,6 +50,15 @@ export const domainSchema = z.object({
   notes: z.array(z.string()).optional(),
 });
 
+/** Applied to every fetched item before it is stored. Patterns are case-insensitive regexes. */
+export const sourceFilterSchema = z.object({
+  /** Keep only items tagged with one of these feed categories. */
+  categories: z.array(z.string()).min(1).optional(),
+  includeTitle: z.string().optional(),
+  excludeTitle: z.string().optional(),
+  excludeUrl: z.string().optional(),
+});
+
 export const sourceSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   name: z.string(),
@@ -63,6 +72,7 @@ export const sourceSchema = z.object({
   reliability: z.string(),
   enabled: z.boolean().default(true),
   config: z.record(z.string(), z.unknown()).default({}),
+  filter: sourceFilterSchema.optional(),
 });
 
 export const referenceSchema = z.object({
@@ -73,9 +83,6 @@ export const referenceSchema = z.object({
     z.object({ name: z.string(), url: z.url(), provides: z.string(), advantage: z.string() }),
   ),
   periodicReviews: z.array(link),
-  commercialSignals: z.array(
-    z.object({ signal: z.string(), sources: z.array(link), tells: z.string() }),
-  ),
   publications: z.array(
     z.object({
       name: z.string(),
@@ -89,5 +96,6 @@ export const referenceSchema = z.object({
 
 export type Domain = z.infer<typeof domainSchema>;
 export type Source = z.infer<typeof sourceSchema>;
+export type SourceFilter = z.infer<typeof sourceFilterSchema>;
 export type Reference = z.infer<typeof referenceSchema>;
 export type Person = z.infer<typeof person>;

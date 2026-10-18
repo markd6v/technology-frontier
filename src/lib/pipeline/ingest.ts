@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
-import { and, eq, inArray, lte, notInArray, or } from "drizzle-orm";
+import { and, eq, inArray, lte, notInArray, or, sql } from "drizzle-orm";
 import { connectorFor, type NormalizedItem } from "@/lib/connectors";
 import type { ConnectorState } from "@/lib/connectors/types";
 import { db, schema, type Database } from "@/lib/db";
 import { createHttp, type Http } from "@/lib/http";
-import { registry, type Frequency, type Source, type Tier } from "@/lib/registry";
+import { registry, type Frequency, type Source, type SourceFilter, type Tier } from "@/lib/registry";
 import { canonicalizeUrl } from "./canonicalize";
 
 const FREQUENCY_MS: Record<Frequency, number> = {
@@ -73,6 +73,44 @@ export async function syncSources(database: Database = db()) {
     .set({ inRegistry: false, enabled: false, updatedAt: now })
     .where(notInArray(schema.sources.id, ids));
   return sources.length;
+}
+
+/** Whether an item survives its source's `filter` (content/sources.yaml). */
+export function passesFilter(filter: SourceFilter | undefined, item: NormalizedItem): boolean {
+  if (!filter) return true;
+  const test = (pattern: string | undefined, text: string) => pattern !== undefined && new RegExp(pattern, "i").test(text);
+  if (filter.categories) {
+    const wanted = new Set(filter.categories.map((c) => c.toLowerCase()));
+    if (!item.categories?.some((c) => wanted.has(c.toLowerCase()))) return false;
+  }
+  if (filter.includeTitle !== undefined && !test(filter.includeTitle, item.title)) return false;
+  if (test(filter.excludeTitle, item.title)) return false;
+  if (test(filter.excludeUrl, item.url)) return false;
+  return true;
+}
+
+/**
+ * Removes what sources dropped from the registry left behind, and re-derives each item's
+ * layer and kind from its first source, so registry edits apply to stored items too.
+ */
+export async function pruneItems(database: Database = db()) {
+  const mentions = await database.execute(sql`
+    delete from item_mentions m using sources s
+    where s.id = m.source_id and not s.in_registry`);
+  const orphans = await database.execute(sql`
+    delete from items i
+    where not exists (select 1 from item_mentions m where m.item_id = i.id)`);
+  await database.execute(sql`
+    update items i set first_source_id = (
+      select m.source_id from item_mentions m where m.item_id = i.id order by m.seen_at limit 1
+    )
+    from sources s
+    where s.id = i.first_source_id and not s.in_registry`);
+  await database.execute(sql`
+    update items i set layer = s.layer, kind = s.kind
+    from sources s
+    where s.id = i.first_source_id and (i.layer <> s.layer or i.kind <> s.kind)`);
+  return { mentionsRemoved: mentions.count, itemsRemoved: orphans.count };
 }
 
 function tierFor(domains: string[]): Tier {
@@ -185,10 +223,11 @@ export async function ingestSource(
   try {
     const config = connector.configSchema.parse(source.config);
     const result = await connector.fetch({ source, config, state, http, now });
+    const kept = result.items.filter((item) => passesFilter(source.filter, item));
 
     let inserted = 0;
     await database.transaction(async (tx) => {
-      for (const item of result.items) {
+      for (const item of kept) {
         if (await upsertItem(tx as unknown as Database, source, item, now)) inserted++;
       }
       await tx

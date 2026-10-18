@@ -6,14 +6,12 @@ export const LAYER_LABEL: Record<Layer, string> = {
   scientific: "Scientific",
   engineering: "Engineering",
   product: "Product",
-  commercial: "Commercial",
 };
 
 export const LAYER_QUESTION: Record<Layer, string> = {
-  scientific: "What has become technically possible?",
-  engineering: "What has become reproducible, reliable, and affordable?",
-  product: "What can ordinary people or businesses now accomplish?",
-  commercial: "Where is adoption accelerating, and who is willing to pay?",
+  scientific: "What has become possible for the first time?",
+  engineering: "What has become reproducible, open, and practical to build on?",
+  product: "What has been released for people to use?",
 };
 
 export const TIER_LABEL: Record<Tier, string> = {

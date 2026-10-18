@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isAllowedByRobots } from "@/lib/http";
 import { arxivIdFromUrl, canonicalizeUrl } from "@/lib/pipeline/canonicalize";
+import { passesFilter } from "@/lib/pipeline/ingest";
 import { loadRegistry } from "@/lib/registry";
 import { excerpt, stripHtml } from "@/lib/text";
 
@@ -51,9 +52,40 @@ describe("content registry", () => {
   it("loads and cross-validates content/", () => {
     const r = loadRegistry();
     expect(r.domains).toHaveLength(15);
-    expect(r.sources.length).toBeGreaterThanOrEqual(26);
+    expect(r.sources.length).toBeGreaterThanOrEqual(20);
     const automatic = r.sources.filter((s) => s.method !== "manual");
-    expect(automatic.length).toBeGreaterThanOrEqual(21);
+    expect(automatic.length).toBeGreaterThanOrEqual(16);
+  });
+});
+
+describe("source filter", () => {
+  const item = (title: string, categories?: string[], url = "https://example.com/a") => ({ url, title, categories });
+
+  it("keeps everything without a filter", () => {
+    expect(passesFilter(undefined, item("Anything"))).toBe(true);
+  });
+
+  it("matches categories case-insensitively and drops untagged items", () => {
+    const f = { categories: ["Research"] };
+    expect(passesFilter(f, item("A", ["research"]))).toBe(true);
+    expect(passesFilter(f, item("B", ["Company"]))).toBe(false);
+    expect(passesFilter(f, item("C"))).toBe(false);
+  });
+
+  it("applies include and exclude patterns", () => {
+    const f = { includeTitle: "^Introducing", excludeTitle: "\\bads?\\b", excludeUrl: "/team/" };
+    expect(passesFilter(f, item("Introducing Claude 5"))).toBe(true);
+    expect(passesFilter(f, item("Barclays scales Claude"))).toBe(false);
+    expect(passesFilter(f, item("Introducing ads"))).toBe(false);
+    expect(passesFilter(f, item("Introducing X", undefined, "https://x.com/research/team/a"))).toBe(false);
+  });
+
+  it("the registry's OpenAI release filter drops business posts", () => {
+    const f = loadRegistry().sources.find((s) => s.id === "openai-releases")!.filter;
+    expect(passesFilter(f, item("Introducing GPT-6.1 Sol", ["Product"]))).toBe(true);
+    expect(passesFilter(f, item("ChatGPT Ads expands to Southeast Asia and Taiwan", ["Product"]))).toBe(false);
+    expect(passesFilter(f, item("Introducing ChatGPT for Financial Services", ["Product"]))).toBe(false);
+    expect(passesFilter(f, item("How Itaú is building generative AI", []))).toBe(false);
   });
 });
 

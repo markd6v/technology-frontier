@@ -1,20 +1,16 @@
 # Source registry (REQUIREMENTS §5). Adding a source = adding an entry here.
+# Only primary sources: papers, lab research posts and official release channels.
+# No general news, commentary, business or market coverage.
+#
 # method: rss | arxiv | hf-papers | github-search | biorxiv | ctgov | page-monitor | manual
-# kind:   research | product | newsletter | community | commercial-data
-# layer:  scientific | engineering | product | commercial
+# kind:   research | release | benchmark | press
+# layer:  scientific | engineering | product
 # frequency: hourly | daily | weekly | yearly
+# filter (optional, applied to every fetched item; patterns are case-insensitive regexes):
+#   categories: [..]   keep only items carrying one of these feed categories
+#   includeTitle / excludeTitle / excludeUrl
 
-- id: arxiv-cs-lg
-  name: arXiv cs.LG
-  domains: [ai]
-  kind: research
-  layer: scientific
-  method: arxiv
-  homepage: https://arxiv.org/list/cs.LG/recent
-  frequency: daily
-  priority: 1
-  reliability: High provenance; claims are unreviewed preprints
-  config: { category: cs.LG, maxResults: 200 }
+# --- AI ---
 
 - id: hf-daily-papers
   name: Hugging Face Daily Papers
@@ -25,39 +21,77 @@
   homepage: https://huggingface.co/papers
   frequency: hourly
   priority: 1
-  reliability: Community-curated arXiv papers; upvotes are a popularity signal
-  config: {}
+  reliability: Community-curated arXiv papers; only those with 20+ upvotes are kept
+  config: { minUpvotes: 20 }
 
-- id: openai-news
-  name: OpenAI News
+- id: openai-research
+  name: OpenAI Research
   domains: [ai]
-  kind: product
-  layer: product
+  kind: research
+  layer: scientific
   method: rss
-  homepage: https://openai.com/news/
+  homepage: https://openai.com/research/
   frequency: hourly
   priority: 1
-  reliability: Company claims; verify independently
-  config: { url: "https://openai.com/news/rss.xml", maxItems: 40 }
+  reliability: Lab research posts and system cards; results are self-reported
+  config: { url: "https://openai.com/news/rss.xml", maxItems: 60 }
+  filter:
+    categories: [Research, Publication]
 
-- id: anthropic-news
-  name: Anthropic News
+- id: openai-releases
+  name: OpenAI Releases
   domains: [ai]
-  kind: product
+  kind: release
+  layer: product
+  method: rss
+  homepage: https://openai.com/news/product-releases/
+  frequency: hourly
+  priority: 1
+  reliability: Official model, API and engineering announcements
+  config: { url: "https://openai.com/news/rss.xml", maxItems: 60 }
+  filter:
+    categories: [Product, Release, Engineering, API]
+    excludeTitle: \b(ads?|advertising|pricing|seats?|partners?|partnership|teens?|webinar|expands?|data residency|now available on|comes? to|for (teachers|students|education|nonprofits|business|enterprises?|healthcare|financial services|government))\b
+
+- id: anthropic-research
+  name: Anthropic Research
+  domains: [ai]
+  kind: research
+  layer: scientific
+  method: page-monitor
+  homepage: https://www.anthropic.com/research
+  frequency: daily
+  priority: 1
+  reliability: Lab research posts; results are self-reported
+  config:
+    listUrl: https://www.anthropic.com/research
+    linkSelector: 'a[href^="/research/"]'
+    allowPrefix: https://www.anthropic.com/research/
+    minLinks: 5
+  filter:
+    excludeUrl: /research/team/
+    excludeTitle: \b(employment|jobs?|labou?r|workers?|economic\w*|expectations?|your thoughts)\b
+
+- id: anthropic-releases
+  name: Anthropic Releases
+  domains: [ai]
+  kind: release
   layer: product
   method: page-monitor
   homepage: https://www.anthropic.com/news
   frequency: daily
   priority: 1
-  reliability: Company claims; verify independently
+  reliability: Model and product launches only; the newsroom's other posts are filtered out
   config:
     listUrl: https://www.anthropic.com/news
     linkSelector: 'a[href^="/news/"]'
     allowPrefix: https://www.anthropic.com/news/
     minLinks: 5
+  filter:
+    includeTitle: ^(Introducing|Announcing) Claude\b|\b(Claude|Opus|Sonnet|Haiku|Fable) \d
 
-- id: deepmind-blog
-  name: Google DeepMind Blog
+- id: google-deepmind
+  name: Google DeepMind
   domains: [ai, robotics]
   kind: research
   layer: scientific
@@ -65,92 +99,152 @@
   homepage: https://deepmind.google/discover/blog/
   frequency: hourly
   priority: 1
-  reliability: Company research announcements
+  reliability: Lab research and model announcements; results are self-reported
   config: { url: "https://deepmind.google/blog/rss.xml", maxItems: 40 }
+  filter:
+    excludeTitle: \b(collaborat\w*|partner\w*|government|responsibl\w*|academy|award)\b
+
+- id: google-research
+  name: Google Research
+  domains: [ai, compute]
+  kind: research
+  layer: scientific
+  method: rss
+  homepage: https://research.google/blog/
+  frequency: daily
+  priority: 2
+  reliability: Lab research posts, usually with a paper
+  config: { url: "https://research.google/blog/rss/", maxItems: 30 }
+  filter:
+    excludeTitle: ^Research@|\b(workers?|employment|economic\w*)\b
+
+- id: hf-blog
+  name: Hugging Face Blog
+  domains: [ai]
+  kind: release
+  layer: engineering
+  method: rss
+  homepage: https://huggingface.co/blog
+  frequency: daily
+  priority: 2
+  reliability: Open-weight model, dataset and library releases, often written by the releasing lab
+  config: { url: "https://huggingface.co/blog/feed.xml", maxItems: 30 }
 
 - id: artificial-analysis
   name: Artificial Analysis
   domains: [ai]
-  kind: commercial-data
+  kind: benchmark
   layer: engineering
   method: manual
   homepage: https://artificialanalysis.ai
   frequency: weekly
   priority: 1
-  reliability: Independent benchmarks of model quality, price and speed
+  reliability: Independent benchmarks of model quality and speed
   config: {}
 
-- id: github-new-repos
-  name: GitHub — fast-rising new repos
-  domains: [software, ai]
-  kind: community
-  layer: engineering
-  method: github-search
-  homepage: https://github.com/trending
-  frequency: daily
-  priority: 1
-  reliability: Stars are weak evidence; contributors and dependents are stronger
-  config: { createdWithinDays: 30, minStars: 100, perPage: 50 }
+# --- Software, compute, security ---
 
-- id: hacker-news
-  name: Hacker News (best)
+- id: lwn
+  name: LWN.net
   domains: [software]
-  kind: community
+  kind: press
   layer: engineering
   method: rss
-  homepage: https://news.ycombinator.com/best
-  frequency: hourly
-  priority: 1
-  reliability: Developer sentiment; not tech-only
-  config: { url: "https://hnrss.org/best", maxItems: 30, hn: true }
-
-- id: cloudflare-blog
-  name: Cloudflare Blog
-  domains: [software, compute, security]
-  kind: product
-  layer: engineering
-  method: rss
-  homepage: https://blog.cloudflare.com
+  homepage: https://lwn.net
   frequency: daily
   priority: 2
-  reliability: Engineering posts; company claims
-  config: { url: "https://blog.cloudflare.com/rss/", maxItems: 20 }
+  reliability: Technical reporting on Linux and open-source development; routine advisories filtered out
+  config: { url: "https://lwn.net/headlines/rss", maxItems: 30 }
+  filter:
+    excludeTitle: ^security updates|stable kernels?|weekly edition|election|documentary|obituary
 
-- id: nvidia-dev-blog
-  name: NVIDIA Developer Blog
-  domains: [compute]
-  kind: product
-  layer: engineering
+- id: project-zero
+  name: Google Project Zero
+  domains: [security]
+  kind: research
+  layer: scientific
   method: rss
-  homepage: https://developer.nvidia.com/blog
+  homepage: https://googleprojectzero.blogspot.com
   frequency: daily
   priority: 2
-  reliability: Vendor engineering posts
-  config: { url: "https://developer.nvidia.com/blog/feed", maxItems: 30 }
+  reliability: Vulnerability research with full technical write-ups
+  config: { url: "https://googleprojectzero.blogspot.com/feeds/posts/default?max-results=10", maxItems: 10 }
 
-- id: semianalysis
-  name: SemiAnalysis
-  domains: [compute, semiconductors]
-  kind: newsletter
-  layer: commercial
+# --- Semiconductors ---
+
+- id: semiengineering-papers
+  name: Semiconductor Engineering — technical papers
+  domains: [semiconductors, compute]
+  kind: research
+  layer: scientific
   method: rss
-  homepage: https://newsletter.semianalysis.com
+  homepage: https://semiengineering.com/category/technical-papers/
   frequency: daily
   priority: 2
-  reliability: Deep analysis; paywalled bodies (titles only)
-  config: { url: "https://newsletter.semianalysis.com/feed", maxItems: 20, titlesOnly: true }
+  reliability: Summaries of new papers, each linking the original
+  config: { url: "https://semiengineering.com/category/technical-papers/feed/", maxItems: 20 }
 
-- id: arxiv-cs-ro
-  name: arXiv cs.RO
+- id: imec
+  name: imec
+  domains: [semiconductors]
+  kind: research
+  layer: scientific
+  method: page-monitor
+  homepage: https://www.imec-int.com/en
+  frequency: daily
+  priority: 2
+  reliability: R&D institute results; business announcements filtered out
+  config:
+    listUrl: https://www.imec-int.com/en
+    linkSelector: 'a[href^="/en/press/"]'
+    allowPrefix: https://www.imec-int.com/en/press/
+    minLinks: 2
+  filter:
+    excludeTitle: \b(collaborat\w*|partner\w*|launches with|expands|joins|appoint\w*|funding|award\w*)\b|€|\$
+
+- id: nature-electronics
+  name: Nature Electronics
+  domains: [semiconductors]
+  kind: research
+  layer: scientific
+  method: rss
+  homepage: https://www.nature.com/natelectron/
+  frequency: daily
+  priority: 2
+  reliability: Peer-reviewed journal
+  config: { url: "https://www.nature.com/natelectron.rss", maxItems: 30 }
+  filter:
+    excludeTitle: ^(author|publisher) correction|^retraction
+
+# --- Robotics ---
+
+- id: science-robotics
+  name: Science Robotics
   domains: [robotics]
   kind: research
   layer: scientific
-  method: arxiv
-  homepage: https://arxiv.org/list/cs.RO/recent
+  method: rss
+  homepage: https://www.science.org/journal/scirobotics
   frequency: daily
   priority: 1
-  reliability: High provenance; claims are unreviewed preprints
-  config: { category: cs.RO, maxResults: 100 }
+  reliability: Peer-reviewed journal
+  config: { url: "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=scirobotics", maxItems: 30 }
+
+- id: physical-intelligence
+  name: Physical Intelligence
+  domains: [robotics, ai]
+  kind: research
+  layer: scientific
+  method: page-monitor
+  homepage: https://www.pi.website/blog
+  frequency: daily
+  priority: 1
+  reliability: Robot-learning research from the lab; results are self-reported
+  config:
+    listUrl: https://www.pi.website/blog
+    linkSelector: 'a[href^="/blog/"]'
+    allowPrefix: https://www.pi.website/blog/
+    minLinks: 3
 
 - id: rss-conference
   name: "Robotics: Science and Systems"
@@ -164,39 +258,9 @@
   reliability: Peer-reviewed; open proceedings
   config: {}
 
-- id: physical-intelligence
-  name: Physical Intelligence
-  domains: [robotics, ai]
-  kind: product
-  layer: product
-  method: page-monitor
-  homepage: https://www.pi.website/blog
-  frequency: daily
-  priority: 1
-  reliability: Company research and product claims
-  config:
-    listUrl: https://www.pi.website/blog
-    linkSelector: 'a[href^="/blog/"]'
-    allowPrefix: https://www.pi.website/blog/
-    minLinks: 3
+# --- Biotech, neurotech ---
 
-- id: biorxiv
-  name: bioRxiv (synbio, bioengineering, bioinformatics, genomics)
-  domains: [biotech]
-  kind: research
-  layer: scientific
-  method: biorxiv
-  homepage: https://www.biorxiv.org
-  frequency: daily
-  priority: 2
-  reliability: Unreviewed preprints
-  config:
-    server: biorxiv
-    categories: [synthetic biology, bioengineering, bioinformatics, genomics]
-    lookbackDays: 2
-    maxPages: 20
-
-- id: nature-biotech
+- id: nature-biotechnology
   name: Nature Biotechnology
   domains: [biotech]
   kind: research
@@ -207,41 +271,38 @@
   priority: 2
   reliability: Peer-reviewed journal
   config: { url: "https://www.nature.com/nbt.rss", maxItems: 30 }
+  filter:
+    excludeTitle: ^(author|publisher) correction|^retraction|\b(FDA|EMA|approv\w*|nod)\b
 
-- id: clinicaltrials
-  name: ClinicalTrials.gov (gene/cell therapy, BCI)
+- id: nature-biomed-eng
+  name: Nature Biomedical Engineering
   domains: [biotech, neurotech]
-  kind: commercial-data
-  layer: commercial
-  method: ctgov
-  homepage: https://clinicaltrials.gov
+  kind: research
+  layer: scientific
+  method: rss
+  homepage: https://www.nature.com/natbiomedeng/
   frequency: daily
   priority: 2
-  reliability: Registry entries; results are not outcomes
-  config:
-    lookbackDays: 7
-    phases: [PHASE1, PHASE2, PHASE3]
-    pageSize: 50
-    queries:
-      - { label: gene therapy / editing, term: "gene therapy OR gene editing OR CRISPR OR base editing OR prime editing", domains: [biotech] }
-      - { label: cell therapy, term: "CAR-T OR CAR T OR cell therapy", domains: [biotech] }
-      - { label: BCI / neurostimulation, term: "brain-computer interface OR brain computer interface OR neural implant OR neurostimulation", domains: [neurotech] }
+  reliability: Peer-reviewed journal; covers implants and brain-computer interfaces
+  config: { url: "https://www.nature.com/natbiomedeng.rss", maxItems: 30 }
+  filter:
+    excludeTitle: ^(author|publisher) correction|^retraction
 
-- id: iea-news
-  name: IEA News
+# --- Energy, materials, quantum ---
+
+- id: nature-energy
+  name: Nature Energy
   domains: [energy-generation, energy-storage]
-  kind: commercial-data
-  layer: commercial
-  method: page-monitor
-  homepage: https://www.iea.org/news
+  kind: research
+  layer: scientific
+  method: rss
+  homepage: https://www.nature.com/nenergy/
   frequency: daily
   priority: 2
-  reliability: Intergovernmental analysis
-  config:
-    listUrl: https://www.iea.org/news
-    linkSelector: 'a[href^="/news/"]'
-    allowPrefix: https://www.iea.org/news/
-    minLinks: 8
+  reliability: Peer-reviewed journal
+  config: { url: "https://www.nature.com/nenergy.rss", maxItems: 30 }
+  filter:
+    excludeTitle: ^(author|publisher) correction|^retraction|\bpolic(y|ies)\b
 
 - id: arpa-e
   name: ARPA-E News & Insights
@@ -255,90 +316,42 @@
   reliability: Government R&D program; page renders with JavaScript, so it can't be monitored statically
   config: {}
 
-- id: imec-press
-  name: imec press releases
-  domains: [semiconductors]
+- id: nature-materials
+  name: Nature Materials
+  domains: [materials]
   kind: research
   layer: scientific
-  method: page-monitor
-  homepage: https://www.imec-int.com/en
-  frequency: daily
-  priority: 2
-  reliability: R&D institute announcements
-  config:
-    listUrl: https://www.imec-int.com/en
-    linkSelector: 'a[href^="/en/press/"]'
-    allowPrefix: https://www.imec-int.com/en/press/
-    minLinks: 2
-
-- id: semiengineering
-  name: Semiconductor Engineering
-  domains: [semiconductors]
-  kind: newsletter
-  layer: engineering
   method: rss
-  homepage: https://semiengineering.com
+  homepage: https://www.nature.com/nmat/
   frequency: daily
-  priority: 2
-  reliability: Technical trade press
-  config: { url: "https://semiengineering.com/feed/", maxItems: 30 }
+  priority: 3
+  reliability: Peer-reviewed journal
+  config: { url: "https://www.nature.com/nmat.rss", maxItems: 30 }
+  filter:
+    excludeTitle: ^(author|publisher) correction|^retraction
 
-- id: mit-tech-review
-  name: MIT Technology Review
-  domains: [ai, biotech, energy-generation, compute]
-  kind: newsletter
-  layer: product
+- id: npj-quantum-information
+  name: npj Quantum Information
+  domains: [quantum]
+  kind: research
+  layer: scientific
   method: rss
-  homepage: https://www.technologyreview.com
+  homepage: https://www.nature.com/npjqi/
   frequency: daily
-  priority: 2
-  reliability: Editorially filtered journalism
-  config: { url: "https://www.technologyreview.com/feed/", maxItems: 30 }
-
-- id: ieee-spectrum
-  name: IEEE Spectrum
-  domains: [semiconductors, robotics, energy-generation, comms]
-  kind: newsletter
-  layer: engineering
-  method: rss
-  homepage: https://spectrum.ieee.org
-  frequency: daily
-  priority: 2
-  reliability: Engineering journalism
-  config: { url: "https://spectrum.ieee.org/feeds/feed.rss", maxItems: 40 }
+  priority: 3
+  reliability: Peer-reviewed open-access journal
+  config: { url: "https://www.nature.com/npjqi.rss", maxItems: 30 }
+  filter:
+    excludeTitle: ^(author|publisher) correction|^retraction
 
 - id: stanford-etr
   name: Stanford Emerging Technology Review
   domains: [ai, biotech, energy-generation, materials, neurotech, quantum, robotics, semiconductors, space]
   kind: research
-  layer: commercial
+  layer: scientific
   method: manual
   homepage: https://setr.stanford.edu
   frequency: yearly
   priority: 3
-  reliability: Periodic cross-disciplinary review
+  reliability: Yearly cross-disciplinary review of where each field stands
   config: {}
-
-- id: yc-companies
-  name: Y Combinator Companies
-  domains: [ai, software]
-  kind: commercial-data
-  layer: commercial
-  method: manual
-  homepage: https://www.ycombinator.com/companies
-  frequency: weekly
-  priority: 2
-  reliability: Startup formation signal; check each batch
-  config: {}
-
-- id: stratechery
-  name: Stratechery
-  domains: [ai, software]
-  kind: newsletter
-  layer: commercial
-  method: rss
-  homepage: https://stratechery.com
-  frequency: daily
-  priority: 2
-  reliability: Strategy analysis; free posts only
-  config: { url: "https://stratechery.com/feed/", maxItems: 20, titlesOnly: true }

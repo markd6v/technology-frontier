@@ -11,7 +11,7 @@ const mono = Geist_Mono({ variable: "--font-mono-face", subsets: ["latin"] });
 export const metadata: Metadata = {
   title: { default: "Frontier Radar", template: "%s · Frontier Radar" },
   description:
-    "Technology frontier intelligence: research, engineering, product and commercial signals across 15 technology domains.",
+    "An overview of recent discoveries and releases across 15 technology domains, taken from papers, labs and official release channels.",
   robots: { index: false, follow: false },
 };
 

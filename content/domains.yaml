@@ -8,7 +8,7 @@
   relevance: Very high
   summary: >-
     Deserves several independent monitoring streams because model research,
-    infrastructure, and commercial applications move at different speeds.
+    infrastructure, and released systems move at different speeds.
   subfields: [Foundation models, Reasoning, Multimodal AI, Agents, World models]
   research:
     - { name: arXiv cs.AI, url: https://arxiv.org/list/cs.AI/recent, note: General AI research }
@@ -36,13 +36,13 @@
     - { name: Andrej Karpathy, focus: "Deep technical intuition, AI engineering, education", priority: true }
     - { name: Ilya Sutskever, focus: Foundational model research and scaling, priority: true }
     - { name: Demis Hassabis, focus: Frontier AI and scientific applications, priority: true }
-    - { name: Dario Amodei, focus: "Scaling, AI capabilities, commercialization" }
+    - { name: Dario Amodei, focus: "Scaling, AI capabilities, safety" }
     - { name: Yann LeCun, focus: "Alternative architectures, world models" }
     - { name: Fei-Fei Li, focus: "Computer vision, spatial intelligence" }
     - { name: François Chollet, focus: "Reasoning, generalization, AI evaluation", priority: true }
     - { name: Jim Fan, focus: "Embodied AI, agents, robotics", priority: true }
     - { name: Jeff Dean, focus: Large-scale AI infrastructure and research }
-    - { name: Andrew Ng, focus: Practical AI applications and commercialization }
+    - { name: Andrew Ng, focus: "Practical AI applications, education" }
     - { name: Swyx (Shawn Wang), focus: AI engineering ecosystem and developer trends }
     - { name: Simon Willison, focus: Hands-on LLM experiments and developer tools, priority: true, url: https://simonwillison.net }
   signals:
@@ -52,11 +52,11 @@
     - New capabilities appearing in small models
     - Open-weight models approaching proprietary model performance
     - Improvements in inference efficiency
-    - Adoption of autonomous workflows
+    - Tasks that agents complete end to end for the first time
   notes:
     - >-
-      A model becoming 20% better on a benchmark is less commercially meaningful than a
-      model becoming reliable enough to perform a previously impossible business workflow.
+      A model becoming 20% better on a benchmark matters less than a model becoming
+      reliable enough to do a task no model could do before.
     - Compare model announcements with independent measurements (Artificial Analysis).
 
 - slug: compute
@@ -98,8 +98,8 @@
     - GPU utilization improving dramatically
   notes:
     - >-
-      The most interesting signal is often not a new GPU but a change in the economics of
-      computation; these can make entirely new products economical.
+      The most interesting signal is often not a new GPU but a large drop in the cost of a
+      computation, which makes previously impractical workloads feasible.
 
 - slug: software
   name: Software infrastructure
@@ -136,12 +136,11 @@
     - { name: Chris Lattner, focus: "LLVM, Swift, Mojo, compiler design" }
     - { name: Mitchell Hashimoto, focus: "Developer tools, infrastructure", url: https://mitchellh.com }
     - { name: Dax Raad, focus: Developer platforms and cloud tooling }
-    - { name: Pieter Levels, focus: Rapid product development and independent software businesses }
   signals:
     - New infrastructure projects that look like toys but attract highly sophisticated developers
     - Sustained contributor growth and downstream dependencies (not just stars)
   notes:
-    - Early technical adoption is often a useful leading indicator.
+    - A new tool that sophisticated developers rebuild their work around is often a leading indicator.
 
 - slug: robotics
   name: Robotics & automation
@@ -180,11 +179,10 @@
     - Generalization to tasks not seen during training
     - Reduction in human demonstrations required
     - Successful deployment outside controlled environments
-    - Robot cost per productive hour
     - Reliability over thousands of operating hours
-    - Number of economically useful tasks per robot
+    - Number of distinct tasks one robot policy can perform
   notes:
-    - Pay much more attention to verified customer deployments than polished demonstration videos.
+    - Pay much more attention to independently verified results and real-world trials than polished demonstration videos.
 
 - slug: biotech
   name: Biotechnology
@@ -227,10 +225,9 @@
     - Protein-design success rates
     - Time from candidate discovery to clinical testing
     - Clinical trial outcomes
-    - Manufacturing cost per treatment
   notes:
     - A breakthrough in a cell culture or animal model is not equivalent to an effective human treatment.
-    - For commercial opportunities, delivery, safety, regulation, and manufacturing can matter more than the discovery.
+    - Delivery and safety often decide whether a discovery becomes a treatment.
     - ClinicalTrials.gov separates promising laboratory results from technologies being tested in humans.
 
 - slug: semiconductors
@@ -260,7 +257,7 @@
     - { name: Jim Keller, focus: CPU architecture }
     - { name: Chris Lattner, focus: Hardware/software co-design }
     - { name: Jensen Huang, focus: Accelerated computing }
-    - { name: Lisa Su, focus: Semiconductor commercialization }
+    - { name: Lisa Su, focus: Processor and accelerator design }
     - { name: David Patterson, focus: "Computer architecture, RISC" }
     - { name: John Hennessy, focus: Computer architecture }
     - { name: Mark Papermaster, focus: Processor engineering }
@@ -273,7 +270,7 @@
     - Packaging density
     - New chip architectures achieving real workload advantages
   notes:
-    - Track system-level performance and economics, not just transistor size.
+    - Track system-level performance and efficiency, not just transistor size.
 
 - slug: energy-generation
   name: Energy generation
@@ -284,7 +281,6 @@
   subfields: [Fusion, Fission, Solar, Geothermal]
   research:
     - { name: ARPA-E, url: https://arpa-e.energy.gov, note: High-risk energy R&D }
-    - { name: IEA, url: https://www.iea.org, note: Technology progress and deployment economics }
     - { name: NREL, url: https://www.nrel.gov/news/, note: "Solar, renewables, energy systems" }
     - { name: MIT Energy Initiative, url: https://energy.mit.edu/news/, note: Energy research }
     - { name: ITER, url: https://www.iter.org/news, note: Fusion research }
@@ -302,45 +298,35 @@
     - { name: Steven Koonin, focus: Energy systems and research }
     - { name: David Keith, focus: Climate and energy technologies }
     - { name: Dennis Whyte, focus: Fusion engineering }
-    - { name: Bob Mumgaard, focus: Fusion commercialization }
+    - { name: Bob Mumgaard, focus: High-field fusion magnets }
     - { name: Jesse Jenkins, focus: Electricity systems }
-    - { name: Leah Stokes, focus: Energy policy and deployment }
     - { name: Saul Griffith, focus: Electrification }
   signals:
-    - Levelized cost of electricity
-    - Cost per installed kilowatt
+    - Solar cell and module efficiency records
     - Capacity factor
     - Fusion energy gain and engineering milestones
-    - Construction timelines
-    - Grid connection delays
-    - Regulatory approvals
-    - First commercial deployments
+    - First-of-a-kind plants reaching operation
   notes:
-    - For fusion, distinguish plasma physics milestones from economically viable net electricity generation.
-    - >-
-      The IEA's energy innovation reporting tracks milestones, patents, financing and
-      deployment (e.g. perovskite solar, fusion, sodium-ion, geothermal).
+    - For fusion, distinguish plasma physics milestones from net electricity delivered to a grid.
 
 - slug: energy-storage
   name: Energy storage & electrification
   short: Storage
   tier: regular
   relevance: Very high
-  summary: Monitored separately from generation because the technological and commercial dynamics differ.
+  summary: Monitored separately from generation because the underlying science and engineering differ.
   subfields: [Batteries, Grid storage, Power electronics]
   research:
     - { name: Argonne National Laboratory, url: https://www.anl.gov/news }
     - { name: Berkeley Lab, url: https://newscenter.lbl.gov }
     - { name: Nature Energy, url: https://www.nature.com/nenergy/ }
     - { name: Journal of Power Sources, url: https://www.sciencedirect.com/journal/journal-of-power-sources }
-    - { name: IEA, url: https://www.iea.org }
     - { name: Battery500 Consortium, url: https://www.pnnl.gov/projects/battery500 }
   products:
     - { name: CATL, url: https://www.catl.com/en/news/ }
     - { name: BYD, url: https://www.byd.com/eu/news }
     - { name: QuantumScape, url: https://www.quantumscape.com/resources/ }
     - { name: Form Energy, url: https://formenergy.com/news/ }
-    - { name: Northvolt, url: https://northvolt.com, note: Historical case study of manufacturing and commercialization risk }
     - { name: Tesla Energy, url: https://www.tesla.com/energy }
   people:
     - { name: Shirley Meng, focus: Battery science }
@@ -350,17 +336,15 @@
     - { name: Yi Cui, focus: Nanomaterials and batteries }
     - { name: Stan Whittingham, focus: Lithium-ion battery development }
   signals:
-    - Battery cost per kWh
     - Energy density
     - Cycle life
     - Charging speed
     - Safety and thermal stability
-    - Manufacturing yield
     - Storage duration and round-trip efficiency
   notes:
     - >-
-      Particularly interesting: technologies that make storage viable where batteries have
-      historically been too expensive, heavy, or short-lived.
+      Particularly interesting: chemistries that work where batteries have historically
+      been too heavy, short-lived, or unsafe.
 
 - slug: materials
   name: Advanced materials & manufacturing
@@ -377,7 +361,6 @@
     - { name: NIST, url: https://www.nist.gov/materials, note: Materials measurement and standards }
     - { name: arXiv cond-mat.mtrl-sci, url: https://arxiv.org/list/cond-mat.mtrl-sci/recent, note: Preprints }
   products:
-    - { name: Desktop Metal, url: https://www.desktopmetal.com, note: Monitor technology and ownership developments }
     - { name: Formlabs, url: https://formlabs.com/blog/ }
     - { name: Carbon, url: https://www.carbon3d.com/resources }
     - { name: Applied Materials, url: https://www.appliedmaterials.com/us/en/newsroom.html }
@@ -391,7 +374,6 @@
   signals:
     - Order-of-magnitude improvement in a useful property while staying manufacturable
     - Strength-to-weight ratio, conductivity, durability, thermal performance
-    - Production cost
   notes:
     - Laboratory records are common. Scalable production is much rarer.
 
@@ -400,7 +382,7 @@
   short: Quantum
   tier: broad
   relevance: High, long horizon
-  summary: Technical progress can be significant without immediately producing a large commercial market.
+  summary: Progress is real but slow to verify; many claimed advantages are later matched classically.
   subfields: [Quantum computing, Quantum communication, Quantum sensing]
   research:
     - { name: arXiv quant-ph, url: https://arxiv.org/list/quant-ph/recent }
@@ -431,16 +413,15 @@
     - Gate fidelity
     - Useful circuit depth
     - Reproducible advantage over classical algorithms
-    - Cost of useful quantum computation
   notes:
-    - What matters most is an economically useful task that classical computing can't do competitively.
+    - What matters most is a useful computation that classical computers demonstrably can't match.
 
 - slug: space
   name: Space technologies
   short: Space
   tier: broad
   relevance: High
-  summary: Increasingly commercial, but capital-intensive and constrained by launch economics and regulation.
+  summary: Reusable launch has changed what can be tested in orbit; progress is constrained by launch cadence and hardware lead times.
   subfields: [Launch, Satellites, Earth observation, In-space manufacturing]
   research:
     - { name: NASA Technical Reports Server, url: https://ntrs.nasa.gov, note: "Papers, engineering reports, patents" }
@@ -458,22 +439,19 @@
     - { name: Varda Space Industries, url: https://www.varda.com }
     - { name: Relativity Space, url: https://www.relativityspace.com }
   people:
-    - { name: Elon Musk, focus: Launch systems and commercialization }
-    - { name: Peter Beck, focus: Launch engineering and space business }
-    - { name: Gwynne Shotwell, focus: Space operations and commercialization }
+    - { name: Peter Beck, focus: Launch vehicle engineering }
     - { name: Jonathan McDowell, focus: Satellite and launch analysis, url: https://planet4589.org }
-    - { name: Eric Berger, focus: Space industry reporting }
-    - { name: Casey Handmer, focus: Space engineering and commercialization, url: https://caseyhandmer.wordpress.com }
+    - { name: Eric Berger, focus: Spaceflight reporting }
+    - { name: Casey Handmer, focus: Space engineering, url: https://caseyhandmer.wordpress.com }
   signals:
     - Launch cost per kilogram
     - Launch frequency
     - Reusability and turnaround time
-    - Satellite manufacturing cost
-    - Cost per unit of Earth observation data
+    - Earth observation resolution and revisit time
     - In-orbit servicing capabilities
-    - Space-based manufacturing economics
+    - In-space manufacturing demonstrations
   notes:
-    - What becomes possible when launch costs fall enough to enable businesses that previously made no economic sense?
+    - Watch for experiments that only became possible once launch got cheap and frequent.
 
 - slug: neurotech
   name: Neuroscience & neurotechnology
@@ -507,9 +485,7 @@
     - Communication bandwidth
     - Implant longevity
     - Surgical complexity
-    - Number of patients treated
-    - Clinical improvements
-    - Regulatory milestones
+    - Clinical improvements in trial participants
   notes:
     - Independent clinical results matter much more than demonstration videos.
 
@@ -518,7 +494,7 @@
   short: Security
   tier: regular
   relevance: High
-  summary: Security breakthroughs can create new markets quickly, especially when they expose widely deployed infrastructure.
+  summary: New attack and defence techniques matter most when they affect widely deployed infrastructure.
   subfields: [Post-quantum cryptography, Privacy, Identity, AI security]
   research:
     - { name: USENIX Security, url: https://www.usenix.org/conferences/byname/108 }
@@ -543,10 +519,9 @@
     - { name: Filippo Valsorda, focus: Practical cryptographic engineering, url: https://words.filippo.io }
   signals:
     - New vulnerability classes
-    - Post-quantum cryptography adoption
+    - Post-quantum cryptography deployed in major protocols
     - Automated vulnerability discovery
     - AI-driven security testing
-    - Cost of protecting software systems
     - New privacy-preserving computation methods
 
 - slug: fintech
@@ -579,21 +554,15 @@
     - { name: Anatoly Yakovenko, focus: High-performance blockchain systems }
     - { name: Dan Robinson, focus: Blockchain research and market structure }
     - { name: Georgios Konstantopoulos, focus: Cryptographic and blockchain engineering }
-    - { name: Balaji Srinivasan, focus: Crypto infrastructure and technology adoption }
-    - { name: Matt Huang, focus: Crypto infrastructure investing }
     - { name: Austin Federa, focus: Blockchain ecosystems and infrastructure }
   signals:
-    - Stablecoin transaction volume adjusted for economic activity
-    - Real-world merchant adoption
-    - Cross-border payment costs
-    - Settlement times
-    - Tokenization of financial assets
-    - Regulatory changes
-    - Developer activity
-    - Institutional infrastructure adoption
+    - Settlement times and finality
+    - Throughput and cost per transaction at the protocol level
+    - New cryptographic primitives (zero-knowledge proofs, threshold signatures) reaching production
+    - Protocol upgrades that change what can be built
   notes:
     - Be careful with TVL, token prices, and raw transaction counts; speculation and bots distort them.
-    - The strongest signal is a financial workflow becoming meaningfully cheaper, faster, or more accessible.
+    - The strongest signal is a protocol or primitive that does something previously impossible, not price or volume.
 
 - slug: comms
   name: Communications & sensing
@@ -630,6 +599,6 @@
     - Network capacity
     - Power consumption
     - Coverage improvements
-    - New sensor accuracy and manufacturing cost
+    - New sensor accuracy and resolution
   notes:
-    - A technology that dramatically improves bandwidth or sensing can enable products that were previously impossible.
+    - A technology that dramatically improves bandwidth or sensing can make new kinds of measurement possible.

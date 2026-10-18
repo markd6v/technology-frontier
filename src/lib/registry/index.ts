@@ -43,6 +43,14 @@ export function loadRegistry(): Registry {
     for (const d of s.domains) {
       if (!slugs.has(d)) problems.push(`source ${s.id}: unknown domain "${d}"`);
     }
+    for (const [key, pattern] of Object.entries(s.filter ?? {})) {
+      if (typeof pattern !== "string") continue;
+      try {
+        new RegExp(pattern, "i");
+      } catch {
+        problems.push(`source ${s.id}: filter.${key} is not a valid regex`);
+      }
+    }
     const connector = connectorFor(s.method);
     if (connector) {
       const result = connector.configSchema.safeParse(s.config);

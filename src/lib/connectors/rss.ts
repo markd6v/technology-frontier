@@ -26,6 +26,18 @@ export function parseHnDescription(html: string | undefined) {
   return { points: num(/Points:\s*(\d+)/), comments: num(/#\s*Comments:\s*(\d+)/), hnId };
 }
 
+/** rss-parser gives RSS categories as strings and Atom ones as `{ $: { term } }` objects. */
+function categoriesOf(entry: FeedItem): string[] | undefined {
+  const raw = (entry.categories ?? []) as unknown[];
+  const out = raw.flatMap((c) => {
+    if (typeof c === "string") return [c.trim()];
+    const o = c as { _?: string; $?: { term?: string } };
+    return [o.$?.term ?? o._ ?? ""].map((t) => t.trim());
+  });
+  const kept = out.filter(Boolean);
+  return kept.length ? kept : undefined;
+}
+
 export const rssConnector = defineConnector({
   method: "rss",
   configSchema: config,
@@ -66,6 +78,7 @@ export const rssConnector = defineConnector({
         publishedAt: parseDate(entry.isoDate ?? entry.pubDate),
         authors: entry.creator ? [entry.creator] : undefined,
         excerpt: config.titlesOnly ? undefined : excerpt(body),
+        categories: categoriesOf(entry),
       });
     }
     return { items, state: { etag: res.etag ?? null, lastModified: res.lastModified ?? null } };
