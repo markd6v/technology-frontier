@@ -77,7 +77,7 @@ export default async function Home() {
         </div>
       </Section>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-10 lg:grid-cols-[1fr_320px] [&>*]:min-w-0">
         <Section title="Latest across all domains" action={<Link href="/feed" className="text-xs text-accent hover:underline">Open feed →</Link>}>
           <Card className="px-4">
             {latest.items.slice(0, 12).map((item) => (

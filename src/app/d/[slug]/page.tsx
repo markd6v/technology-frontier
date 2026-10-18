@@ -66,7 +66,7 @@ export default async function DomainPage({ params }: Params) {
         ))}
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-10 lg:grid-cols-[1fr_340px] [&>*]:min-w-0">
         <div>
           <Section
             title={`Recent items · ${total.toLocaleString()}`}
