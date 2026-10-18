@@ -1,0 +1,207 @@
+import { and, arrayOverlaps, count, desc, eq, gte, inArray, sql, type SQL } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
+import { db, schema } from "@/lib/db";
+
+const REVALIDATE = 300;
+const { items, itemMentions, sourceState } = schema;
+
+export type FeedFilters = {
+  domain?: string;
+  layer?: string;
+  kind?: string;
+  source?: string;
+  q?: string;
+  page?: number;
+};
+
+export type FeedItem = {
+  id: number;
+  url: string;
+  title: string;
+  excerpt: string | null;
+  authors: string[] | null;
+  sortAt: string;
+  domains: string[];
+  layer: string;
+  kind: string;
+  firstSourceId: string;
+  mentions: { sourceId: string; signals: Record<string, number> }[];
+};
+
+export const PAGE_SIZE = 40;
+
+function where(f: FeedFilters): SQL | undefined {
+  const conds: SQL[] = [];
+  if (f.domain) conds.push(arrayOverlaps(items.domains, [f.domain]));
+  if (f.layer) conds.push(eq(items.layer, f.layer));
+  if (f.kind) conds.push(eq(items.kind, f.kind));
+  if (f.source) {
+    conds.push(
+      sql`exists (select 1 from ${itemMentions} m where m.item_id = ${items.id} and m.source_id = ${f.source})`,
+    );
+  }
+  if (f.q?.trim()) conds.push(sql`${items.search} @@ websearch_to_tsquery('english', ${f.q.trim()})`);
+  return conds.length ? and(...conds) : undefined;
+}
+
+async function attachMentions(rows: Omit<FeedItem, "mentions">[]): Promise<FeedItem[]> {
+  if (!rows.length) return [];
+  // Latest signals per (item, source).
+  const mentions = await db()
+    .selectDistinctOn([itemMentions.itemId, itemMentions.sourceId], {
+      itemId: itemMentions.itemId,
+      sourceId: itemMentions.sourceId,
+      signals: itemMentions.signals,
+    })
+    .from(itemMentions)
+    .where(
+      inArray(
+        itemMentions.itemId,
+        rows.map((r) => r.id),
+      ),
+    )
+    .orderBy(itemMentions.itemId, itemMentions.sourceId, desc(itemMentions.seenAt));
+  const byItem = new Map<number, FeedItem["mentions"]>();
+  for (const m of mentions) {
+    const list = byItem.get(m.itemId) ?? [];
+    list.push({ sourceId: m.sourceId, signals: m.signals });
+    byItem.set(m.itemId, list);
+  }
+  return rows.map((r) => ({
+    ...r,
+    mentions: (byItem.get(r.id) ?? []).sort((a, b) =>
+      a.sourceId === r.firstSourceId ? -1 : b.sourceId === r.firstSourceId ? 1 : 0,
+    ),
+  }));
+}
+
+const feedColumns = {
+  id: items.id,
+  url: items.url,
+  title: items.title,
+  excerpt: items.excerpt,
+  authors: items.authors,
+  sortAt: sql<string>`${items.sortAt}`,
+  domains: items.domains,
+  layer: items.layer,
+  kind: items.kind,
+  firstSourceId: items.firstSourceId,
+};
+
+export const getFeed = unstable_cache(
+  async (f: FeedFilters): Promise<{ items: FeedItem[]; total: number }> => {
+    const page = Math.max(1, f.page ?? 1);
+    const filter = where(f);
+    const [rows, [{ total }]] = await Promise.all([
+      db()
+        .select(feedColumns)
+        .from(items)
+        .where(filter)
+        .orderBy(desc(items.sortAt), desc(items.id))
+        .limit(PAGE_SIZE)
+        .offset((page - 1) * PAGE_SIZE),
+      db().select({ total: count() }).from(items).where(filter),
+    ]);
+    return { items: await attachMentions(rows), total };
+  },
+  ["feed"],
+  { revalidate: REVALIDATE, tags: ["items"] },
+);
+
+export const getLatestByDomain = unstable_cache(
+  async (slugs: string[], perDomain: number): Promise<Record<string, FeedItem[]>> => {
+    const out: Record<string, FeedItem[]> = {};
+    await Promise.all(
+      slugs.map(async (slug) => {
+        const rows = await db()
+          .select(feedColumns)
+          .from(items)
+          .where(arrayOverlaps(items.domains, [slug]))
+          .orderBy(desc(items.sortAt), desc(items.id))
+          .limit(perDomain);
+        out[slug] = await attachMentions(rows);
+      }),
+    );
+    return out;
+  },
+  ["latest-by-domain"],
+  { revalidate: REVALIDATE, tags: ["items"] },
+);
+
+export const getDomainCounts = unstable_cache(
+  async (days: number): Promise<Record<string, number>> => {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const rows = await db()
+      .select({ domain: sql<string>`unnest(${items.domains})`, n: count() })
+      .from(items)
+      .where(gte(items.sortAt, since))
+      .groupBy(sql`1`);
+    return Object.fromEntries(rows.map((r) => [r.domain, r.n]));
+  },
+  ["domain-counts"],
+  { revalidate: REVALIDATE, tags: ["items"] },
+);
+
+export type SourceHealth = {
+  sourceId: string;
+  lastRunAt: string | null;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  consecutiveFailures: number;
+  lastFetchedCount: number | null;
+  lastNewCount: number | null;
+  nextDueAt: string;
+  items7d: number;
+};
+
+export const getSourceHealth = unstable_cache(
+  async (): Promise<Record<string, SourceHealth>> => {
+    const since = new Date(Date.now() - 7 * 86_400_000);
+    const [states, counts] = await Promise.all([
+      db().select().from(sourceState),
+      db()
+        .select({ sourceId: itemMentions.sourceId, n: sql<number>`count(distinct ${itemMentions.itemId})::int` })
+        .from(itemMentions)
+        .where(gte(itemMentions.seenAt, since))
+        .groupBy(itemMentions.sourceId),
+    ]);
+    const countBy = new Map(counts.map((c) => [c.sourceId, c.n]));
+    const iso = (d: Date | null) => (d ? d.toISOString() : null);
+    return Object.fromEntries(
+      states.map((s) => [
+        s.sourceId,
+        {
+          sourceId: s.sourceId,
+          lastRunAt: iso(s.lastRunAt),
+          lastSuccessAt: iso(s.lastSuccessAt),
+          lastError: s.lastError,
+          consecutiveFailures: s.consecutiveFailures,
+          lastFetchedCount: s.lastFetchedCount,
+          lastNewCount: s.lastNewCount,
+          nextDueAt: s.nextDueAt.toISOString(),
+          items7d: countBy.get(s.sourceId) ?? 0,
+        },
+      ]),
+    );
+  },
+  ["source-health"],
+  { revalidate: REVALIDATE, tags: ["sources", "items"] },
+);
+
+export const getTotals = unstable_cache(
+  async () => {
+    const dayAgo = new Date(Date.now() - 86_400_000);
+    const [[all], [today], [multi]] = await Promise.all([
+      db().select({ n: count() }).from(items),
+      db().select({ n: count() }).from(items).where(gte(items.fetchedAt, dayAgo)),
+      db()
+        .select({ n: sql<number>`count(*)::int` })
+        .from(
+          sql`(select item_id from ${itemMentions} group by item_id having count(distinct source_id) > 1) x`,
+        ),
+    ]);
+    return { items: all.n, last24h: today.n, multiSource: multi.n };
+  },
+  ["totals"],
+  { revalidate: REVALIDATE, tags: ["items"] },
+);
