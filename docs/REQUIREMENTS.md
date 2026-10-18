@@ -1,6 +1,6 @@
 # Technology Frontier Radar — Requirements
 
-Status: draft v0.2 (2026-10-18). Turns the "Technology Frontier Intelligence" research brief into something buildable. The decisions from v0.1's open questions are recorded in §11.
+Status: draft v0.3 (2026-10-18). v0.3 drops the daily brief: the current build is Phase 0 (sources + website). Turns the "Technology Frontier Intelligence" research brief into something buildable. The decisions from v0.1's open questions are recorded in §11.
 
 ---
 
@@ -8,11 +8,11 @@ Status: draft v0.2 (2026-10-18). Turns the "Technology Frontier Intelligence" re
 
 One person (the owner, a software engineer) wants to spot technologies at the **economic inflection** stage: technically possible, becoming cheap and reliable, but not yet widely adopted. Doing this by reading ~100 websites by hand doesn't scale.
 
-The site collects new items from a fixed set of sources, sorts them by domain and frontier layer, and turns them into three reviewable outputs: a daily brief, a weekly trends report, and a monthly opportunity report.
+The site collects new items from a fixed set of sources, sorts them by domain and frontier layer, and shows them as a browsable, filterable feed. Later phases add LLM enrichment, a weekly trends report and a monthly opportunity report.
 
 **Success, measured after 4 weeks of real use:**
-- The owner reads the daily brief on at least 15 of 20 working days, and it takes ≤15 minutes.
-- At least 70% of brief items are rated "worth seeing" (thumbs up/down on each item).
+- The owner checks the site on at least 15 of 20 working days, and catching up on a domain takes ≤15 minutes.
+- From Phase 1: at least 70% of triaged items are rated "worth seeing" (thumbs up/down on each item).
 - At least 3 weekly reports each produce one deep-dive topic that the owner actually researches.
 - Every claim in every output links to its original source.
 
@@ -25,12 +25,12 @@ The site collects new items from a fixed set of sources, sorts them by domain an
 
 | User | Needs |
 |---|---|
-| Owner (only signed-in user) | Read briefs (mostly on a phone), browse the raw feed, rate items, add/disable sources, write notes on trends |
+| Owner (only signed-in user) | Browse the site (often on a phone), browse the raw feed, rate items, add/disable sources, write notes on trends |
 | Visitor (anonymous) | Read public pages only |
 | Scheduler (system) | Run ingestion and report generation on a timer with no manual steps |
 
 **Access model: public, read-only.**
-- Anyone with the URL can read: the feed, domain/source/people pages, published briefs and reports, trends.
+- Anyone with the URL can read: the feed, domain/source/people pages, published reports, trends.
 - Only the owner, signed in, can write: ratings, notes, trend merge/split/dismiss, score overrides, enabling sources. Anything written goes through an authenticated server action. Visitors have no write endpoints at all.
 - Owner sign-in is a single password stored as an env var (hashed comparison) with a long-lived, `HttpOnly`, `Secure` session cookie. Failed attempts are rate-limited.
 - Private to the owner (never rendered for visitors): owner notes, ratings, LLM cost figures, the source-usefulness report.
@@ -75,22 +75,20 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 - Items are deduplicated by canonical URL (and by DOI/arXiv ID where one exists).
 - One failing source never blocks the others.
 
-### Phase 1 — Triage, extraction, daily brief
+### Phase 1 — Triage and extraction
 - **Funnel**: items get cheaper checks first, and the LLM only sees what survives:
   1. **Rule pre-filter (free):** dedupe; drop broad-tier items (§4 tiers); keyword/category rules per source. For example, arXiv cs.LG/cs.RO items go straight through if they also appear in HF Daily Papers. Otherwise they need a match on a keyword list kept in config. HN items need a score of at least 100.
   2. **Batch triage (small model):** titles plus the first ~300 characters only, 20–50 items per request. Returns relevant or not, domain, layer, and a 1–5 novelty guess.
-  3. **Extraction (stronger model):** only for the top ~15–25 triaged items per day, producing the Development fields (§6.3).
-  4. **Brief writing (stronger model):** one call per day, working from the extracted developments only.
-- **Budget enforcement:** a hard cap of **$20/month**, enforced in code. Spend is tracked per call from the API's token usage. Daily allowance = (remaining budget) ÷ (days left in the month). When the allowance runs out, LLM steps stop for the day, the brief falls back to "top items by rules, unsummarized", and the health page says so. At 80% of the monthly cap the owner gets an email.
-- Daily brief, generated at a fixed time: 5 research items, 5 product/engineering items, 3 adoption/commercial signals. Each one answers *what changed, why it matters, what the evidence is, what it could make possible*, and links to the source. If a day has fewer good items, the brief shows fewer rather than padding.
-- **Email delivery:** after the brief is generated, a short email goes to the owner's address. It has a 1-line headline per item and links to the brief page. Sent through a transactional email API (§10).
-- Thumbs up/down on each brief item, stored for tuning later. Owner only.
+  3. **Extraction (stronger model):** only for the top ~15–25 triaged items per day, producing the Development fields (§6.3). Extracted items appear in the feed as enriched cards.
+- **Budget enforcement:** a hard cap of **$20/month**, enforced in code. Spend is tracked per call from the API's token usage. Daily allowance = (remaining budget) ÷ (days left in the month). When the allowance runs out, LLM steps stop for the day. Items stay in the feed untriaged, and the health page says so. At 80% of the monthly cap the owner gets an email.
+- Feed filters for triage results: relevant only, novelty ≥ N, enriched only.
+- Thumbs up/down on each triaged item, stored for tuning later. Owner only.
 
 **Acceptance:**
-- The brief is generated and the email sent with no manual step on ≥95% of days, by 07:15 Asia/Dubai.
-- No brief item lacks a source link.
+- ≥95% of queued items are triaged within 2 h of ingestion.
+- Every enriched item shows its source link.
 - A company's claim is always labelled as a claim unless an independent source backs it up.
-- LLM spend for the month never goes over $20. A test with a simulated cap proves the fallback works.
+- LLM spend for the month never goes over $20. A test with a simulated cap proves that LLM calls stop and the feed keeps updating.
 
 ### Phase 2 — Trends, scoring, weekly report
 - Embed developments and cluster them into trends. A trend keeps a timeline of its developments, tagged by layer and source.
@@ -220,23 +218,23 @@ Each dimension is scored 1–5 by the LLM, with a one-line reason. The owner can
 
 | Page | Phase | Contents |
 |---|---|---|
-| Home / Today | 0→1 | Phase 0: latest items per deep-tier domain. Phase 1 and later: today's brief |
+| Home | 0 | Latest items per deep-tier domain, plus source health at a glance |
 | Feed | 0 | All items, with filters (domain, layer, kind, source, date) and search |
 | Domain `/d/{slug}` | 0 | Subfields, signals to watch, research/product/people lists, recent items, trends (P2) |
 | Sources | 0 | Registry table plus health status |
 | People | 0 | Specialists and cross-disciplinary thinkers, with links and feeds |
-| Briefs archive | 1 | Daily / weekly / monthly reports by date |
+| Reports archive | 2 | Weekly / monthly reports by date |
 | Trends | 2 | Ranked list (two rankings), trend detail with timeline |
 | Opportunities | 3 | Monthly assessments |
 
-Must work at phone width (the daily brief gets read on a phone). Owner-only controls (ratings, notes, trend edits, cost figures) appear only when signed in. Visitors see the same pages without them.
+Must work at phone width (the owner reads it on a phone). Owner-only controls (ratings, notes, trend edits, cost figures) appear only when signed in. Visitors see the same pages without them.
 
 ## 9. Non-functional
 
 - **Schedule** (all times Asia/Dubai, UTC+4):
   - Feed/API sources: hourly for `hourly`, otherwise once a day at 02:00.
   - Page monitors: once a day at 02:00.
-  - Triage runs hourly after ingestion. Extraction is submitted at 04:00, and the brief is generated and emailed between 06:00 and 07:00. Vercel Hobby cron fires anywhere in the scheduled hour; see ARCHITECTURE §9.
+  - Triage runs hourly after ingestion (Phase 1). Extraction is submitted once a day. Vercel Hobby cron fires anywhere in the scheduled hour; see ARCHITECTURE §9.
   - Weekly report: Saturday 08:00. Monthly report: 1st of the month at 08:00.
 - **Politeness:** respect robots.txt and rate limits. Identify with a User-Agent. Back off on errors.
 - **Traceability:** store the prompt version and model with every LLM output, so outputs can be re-run when prompts change.
@@ -252,9 +250,9 @@ Must work at phone width (the daily brief gets read on a phone). Owner-only cont
 - **DB:** **Neon** Postgres with the `pgvector` extension (embeddings are needed from Phase 2). Migrations live in the repo.
 - **Jobs:**
   - Daily/weekly/monthly jobs: Vercel Cron calling protected route handlers.
-  - Hourly ingestion: a scheduled GitHub Actions workflow calling the same protected endpoint. Vercel Cron's frequency limit depends on the plan, so check it when setting up. GitHub's scheduled runs can start several minutes late, so the 07:00 brief must not depend on them.
+  - Hourly ingestion: a scheduled GitHub Actions workflow calling the same protected endpoint. Vercel Cron's frequency limit depends on the plan, so check it when setting up. GitHub's scheduled runs can start several minutes late, so nothing time-critical depends on them.
 - **LLM:** Claude API through the official TypeScript SDK. A small model for triage, a stronger one for extraction and reports. Pick the exact models in Phase 1 by checking current pricing against the $20/month cap.
-- **Email:** a transactional email API (Resend proposed: it has a simple Node SDK and a free tier). Needs a verified sending domain or the provider's test sender.
+- **Email (alerts only):** a transactional email API (Resend proposed: it has a simple Node SDK and a free tier). Needs a verified sending domain or the provider's test sender.
 - **Registry and domain content:** YAML files in the repo, so edits are reviewable in git. At deploy time they are validated against a schema.
 
 ## 11. Decisions (2026-10-18)
@@ -263,7 +261,7 @@ Must work at phone width (the daily brief gets read on a phone). Owner-only cont
 |---|---|---|
 | 1 | Hosted or local? | Hosted on Vercel + Neon, so the owner can read on a phone |
 | 2 | LLM budget | Hard cap of $20/month, with the funnel and fallback in Phase 1 |
-| 3 | Brief time and delivery | 07:00 Asia/Dubai. Published on the site, plus an email to the owner |
+| 3 | Daily brief | Dropped (2026-10-18). Email is used only for alerts; times are Asia/Dubai |
 | 4 | Feedless starter sources | Build page monitors (Anthropic and Physical Intelligence first, then IEA, ARPA-E, imec) |
 | 5 | bioRxiv / ClinicalTrials.gov | Narrow categories from the start (§5.1) |
 | 6 | Broad-tier domains | Registry and feed only until Phase 2. No LLM triage |
@@ -271,5 +269,5 @@ Must work at phone width (the daily brief gets read on a phone). Owner-only cont
 
 ## 12. Open questions
 
-1. Which domain sends the brief email? Using the provider's test sender is fine to start.
+1. Which domain sends alert emails? Using the provider's test sender is fine to start.
 2. Keyword lists for the arXiv pre-filter: draft them from the "signals to monitor" in the research brief, then the owner reviews them before Phase 1.

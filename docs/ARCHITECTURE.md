@@ -1,6 +1,6 @@
 # Technology Frontier Radar — Architecture
 
-Status: draft v0.1 (2026-10-18). This describes how [REQUIREMENTS.md](REQUIREMENTS.md) gets built. Section numbers like "R§4" point to the requirements doc.
+Status: draft v0.2 (2026-10-18). v0.2 drops the daily brief. This describes how [REQUIREMENTS.md](REQUIREMENTS.md) gets built. Section numbers like "R§4" point to the requirements doc.
 
 ---
 
@@ -33,7 +33,6 @@ flowchart LR
   subgraph Pipeline[src/lib/pipeline]
     ING[ingest] --> PRE[prefilter] --> TRI[triage]
     TRI --> SEL[select + extract]
-    SEL --> BRF[brief]
   end
 
   SRC[(External sources<br/>RSS · APIs · pages)]
@@ -48,8 +47,7 @@ flowchart LR
   ING --> SRC
   TRI --> LLM
   SEL --> LLM
-  BRF --> LLM
-  BRF --> MAIL
+  JOBS --> MAIL
   Pipeline <--> DB
   REG --> ING
   REG --> PAGES
@@ -83,7 +81,7 @@ content/                      # human-edited, reviewed in git, validated in CI
   domains/*.yaml              # 15 domains: subfields, signals, research/products/people
   people.yaml                 # specialists + cross-disciplinary thinkers
   keywords.yaml               # prefilter keyword lists per domain
-  config.yaml                 # scoring weights, budget, schedule, brief sizes, model ids
+  config.yaml                 # scoring weights, budget, schedule, model ids
 src/
   app/                        # pages (§10), /api/jobs/[name], /api/me, /login
   lib/
@@ -91,7 +89,7 @@ src/
     connectors/               # one file per method: rss, arxiv, hf-papers, github-search,
                               #   biorxiv, ctgov, hn, page-monitor; index.ts = registry
     http/                     # fetch wrapper: UA, timeout, conditional GET, robots, retry
-    pipeline/                 # ingest, canonicalize, prefilter, triage, extract, brief, ...
+    pipeline/                 # ingest, canonicalize, prefilter, triage, extract, ...
     llm/                      # client, budget ledger, prompts/<name>.v<N>.ts, output schemas
     db/                       # drizzle schema, client, queries
     email/                    # templates + send
@@ -188,11 +186,6 @@ developments     item_id PK→items, technology, subfield, claim, previous_limit
                  confidence smallint, confidence_reason, evidence_item_ids bigint[],
                  llm_call_id→llm_calls, prompt_version
 
-briefs           id PK, kind enum(daily, weekly, monthly), period date,
-                 status enum(pending, ready, fallback, failed), body jsonb,
-                 emailed_at, llm_call_id, UNIQUE(kind, period)
-brief_entries    brief_id→briefs, item_id→items, section, position, text jsonb
-
 llm_calls        id PK, purpose, model, prompt_version, batch_id NULL,
                  status enum(reserved, settled, released),
                  reserved_usd numeric, input_tokens, output_tokens,
@@ -207,7 +200,7 @@ login_attempts   ip_hash, at                       -- rate limiting
 
 **Storage estimate:** ~600 raw items/day × ~1.2 KB (excerpt + abstract + row overhead) ≈ 0.7 MB/day ≈ **260 MB/year**. That leaves room in 1 GB for indexes, mentions and Phase 2 embeddings (1024-dim float4 ≈ 4 KB × ~20 developments/day ≈ 30 MB/year). Abstracts make up the bulk. Once storage passes 70%, the health page warns. The fix is upgrading Neon, not deleting data (R§9 retention).
 
-**Phase 2 adds:** `embeddings(item_id, model, vector(1024))`, `trends`, `trend_members(trend_id, item_id, added_by)`, `trend_scores`.
+**Phase 2 adds:** `reports(id, kind enum(weekly, monthly), period, status, body jsonb, UNIQUE(kind, period))`, `embeddings(item_id, model, vector(1024))`, `trends`, `trend_members(trend_id, item_id, added_by)`, `trend_scores`.
 **Phase 3 adds:** `metric_series(kind, key, date, value)` for OpenAlex concept counts, repo stars and package downloads.
 
 ## 7. Processing pipeline
@@ -230,16 +223,12 @@ Passing items → `queued`.
 ### 7.3 Select + extract (Claude Sonnet 5.5, Message Batches, daily)
 - **Select** (04:00 Dubai, deterministic, no LLM): rank `triaged` items from the last 36 h by `novelty × tier_weight + mention_bonus` (more independent sources means a higher score). Take the top 25, with a cap per domain so AI can't take every slot. Status `selected`.
 - **Extract:** submit one Message Batch (50% price) with one request per item: the item plus any mentions' titles → Development fields (R§6.3) as structured output.
-- Results are collected by whichever job runs next (the hourly job polls open batches, and so does the brief job). Batches usually finish well inside the 2-hour window. Anything still unfinished when the brief runs is left out of that day's brief and picked up the next day.
+- The hourly job polls open batches and writes results, then `revalidateTag('feed')`.
 
-### 7.4 Brief (Claude Opus 5.5, synchronous, daily)
-- Runs at 06:00 Dubai. Input is the extracted developments from the last 36 h that aren't in a previous brief. Output: a structured brief `{research[≤5], product[≤5], signals[≤3]}`, each entry `{item_id, headline, what_changed, why_it_matters, evidence, could_enable, claim_status}`.
-- **Link integrity:** the model can only refer to items by `item_id`. Every URL on the page and in the email comes from the `items` table, never from model text. Entries with unknown IDs are dropped.
-- Store the brief → `revalidateTag('brief')` → send the email.
-- **Fallback** (R§4 Phase 1): if the budget is exhausted, or the LLM call fails twice, build the brief from the top selected items by rank. Each one shows its title and excerpt, the brief gets `status = fallback`, and the email says so.
-
-### 7.5 Weekly / monthly (Phase 2–3)
-These are Opus synchronous jobs that read developments and trends, never raw items. They follow the same link-integrity rule and the same fallback pattern.
+### 7.4 Weekly / monthly reports (Phase 2–3)
+- These are Opus synchronous jobs that read developments and trends, never raw items.
+- **Link integrity:** the model can only refer to items by `item_id`. Every URL on the page and in any email comes from the `items` table, never from model text. Entries with unknown IDs are dropped.
+- If the budget is exhausted, the report is skipped and the health page says so.
 
 ## 8. LLM layer
 
@@ -251,12 +240,11 @@ Prices from the current Claude model table: Haiku 5.5 $0.10/$0.50, Sonnet 5.5 $2
 |---|---|---|---|---|
 | Triage | `claude-haiku-5-5`, effort low | ~200 items, 5 calls | 35k / 15k | ~$0.30 |
 | Extraction | `claude-sonnet-5-5`, batch, effort low | 25 items | 60k / 40k | ~$7.80 |
-| Daily brief | `claude-opus-5-5`, effort medium | 1 call | 15k / 8k | ~$6.60 |
 | Weekly report (P2) | `claude-opus-5-5` | ~4 calls/month | 30k / 10k per call | ~$1.40 |
 | Monthly report (P3) | `claude-opus-5-5` | 1 call/month | 60k / 20k per call | ~$0.60 |
-| **Total** | | | | **~$16.70**, about $3 under the cap |
+| **Total** | | | | **~$10.10**, about half the cap |
 
-The owner should know: **using Opus 5.5 for every step would come to roughly $35–40/month**, well over the cap. This plan puts Opus only where synthesis quality matters most, which is the brief the owner actually reads. If quality is fine, the next lever is moving the brief to Sonnet 5.5 (≈ −$3.30). Model IDs live in `config.yaml`, so swapping one is a config change.
+The owner should know: **using Opus 5.5 for every step would come to roughly $31/month**, over the cap. This plan puts Opus only on the reports, where synthesis quality matters most. Model IDs live in `config.yaml`, so swapping one is a config change.
 
 ### 8.2 Budget ledger (enforces R§4 Phase 1)
 
@@ -274,7 +262,7 @@ release(callId)       → on error before any tokens were billed
 - Reservation and the checks run in one transaction with `SELECT … FOR UPDATE` on a per-month row, so concurrent jobs can't overspend.
 - Price table in `config.yaml`, keyed by model ID.
 - 80% threshold → one alert email per month (tracked in `job_runs`).
-- Tests: simulated cap → the brief job produces a `fallback` brief and makes no LLM call (R§4 acceptance).
+- Tests: simulated cap → no LLM call is made and ingestion still completes (R§4 acceptance).
 
 ### 8.3 Prompts and outputs
 - Prompts live in `src/lib/llm/prompts/<name>.v<N>.ts` and export `{ version, system, buildUser(input), schema }`. Every stored output records `prompt_version` (R§9).
@@ -296,7 +284,6 @@ All times are Asia/Dubai (UTC+4). Vercel Hobby fires anywhere within the hour, s
 |---|---|---|---|---|
 | `hourly` | GitHub Actions | `15 * * * *` | every hour | ingest due sources → prefilter → triage → poll open batches |
 | `extract` | Vercel Cron | `0 0 * * *` | 04:00–04:59 | select top 25 → submit extraction batch |
-| `brief` | Vercel Cron | `0 2 * * *` | 06:00–06:59 | poll batch → brief → revalidate → email (deadline 07:15) |
 | `weekly` (P2) | Vercel Cron | `0 4 * * 6` | Sat 08:00–08:59 | weekly report |
 | `monthly` (P3) | Vercel Cron | `0 4 1 * *` | 1st, 08:00–08:59 | monthly report |
 | `maintenance` | Vercel Cron | `0 23 * * *` | 03:00–03:59 | registry sync, storage check, failure alerts |
@@ -310,7 +297,7 @@ All times are Asia/Dubai (UTC+4). Vercel Hobby fires anywhere within the hour, s
 ## 10. Web app
 
 ### 10.1 Rendering strategy
-- **Public pages** are server components cached with `unstable_cache` / tagged fetches: `feed`, `brief`, `sources`, `domain:<slug>`. After jobs write, they call `revalidateTag`. Visitors hit the cache and the DB stays asleep.
+- **Public pages** are server components cached with `unstable_cache` / tagged fetches: `feed`, `reports`, `sources`, `domain:<slug>`. After jobs write, they call `revalidateTag`. Visitors hit the cache and the DB stays asleep.
 - **Feed with filters/search** is dynamic (query params) but paginated (50 per page) with indexed queries: `(status, published_at)`, GIN on `domains`, GIN on `search`.
 - **Owner controls** are client components that call `/api/me`. If signed in, they render rating buttons, notes and cost figures. Public HTML stays identical for everyone, which is what keeps it cacheable.
 - **Domain and people pages** are fully static (built from `content/`), plus a cached "recent items" section.
@@ -320,12 +307,12 @@ All times are Asia/Dubai (UTC+4). Vercel Hobby fires anywhere within the hour, s
 
 | Route | Phase |
 |---|---|
-| `/` | today's brief; in P0, latest items in each deep-tier domain |
+| `/` | 0, latest items in each deep-tier domain |
 | `/feed?domain=&layer=&kind=&source=&q=&page=` | 0 |
 | `/d/[slug]` | 0 |
 | `/sources`, `/sources/[id]` | 0, health included |
 | `/people` | 0 |
-| `/briefs`, `/briefs/[kind]/[period]` | 1 |
+| `/reports`, `/reports/[kind]/[period]` | 2 |
 | `/trends`, `/trends/[id]` | 2 |
 | `/opportunities` | 3 |
 | `/login` | 0 |
@@ -341,9 +328,8 @@ Owner mutations are **server actions** that call `requireOwner()` first.
 
 ## 11. Email
 - Resend, `from` set by `EMAIL_FROM` (the provider's test sender until a domain is set up, R§12 Q1), `to` = `OWNER_EMAIL`.
-- **Daily brief:** HTML + text. One line per entry linking to the brief page. Subject `Frontier Brief — 18 Oct: <top headline>`. A `fallback` brief gets a "[fallback]" subject prefix.
-- **Alerts** (at most one of each kind per day): brief failed, budget hit 80%, a source failing for 3+ consecutive days, a page-monitor breakage guard tripping, storage over 70%.
-- Each send is recorded on the brief or alert row, so retries don't send twice.
+- **Alerts** (at most one of each kind per day): budget hit 80%, a source failing for 3+ consecutive days, a page-monitor breakage guard tripping, storage over 70%.
+- Each send is recorded in `job_runs`, so retries don't send twice.
 
 ## 12. Observability
 - The `job_runs` table drives the `/sources` health view: last run, each source's status, items per source over 7 days, monitor guard trips.
