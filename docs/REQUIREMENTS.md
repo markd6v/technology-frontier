@@ -236,7 +236,7 @@ Must work at phone width (the daily brief gets read on a phone). Owner-only cont
 - **Schedule** (all times Asia/Dubai, UTC+4):
   - Feed/API sources: hourly for `hourly`, otherwise once a day at 02:00.
   - Page monitors: once a day at 02:00.
-  - Daily pipeline: triage and extraction at 06:00, brief generated and emailed at 07:00 (03:00 UTC).
+  - Triage runs hourly after ingestion. Extraction is submitted at 04:00, and the brief is generated and emailed between 06:00 and 07:00. Vercel Hobby cron fires anywhere in the scheduled hour; see ARCHITECTURE §9.
   - Weekly report: Saturday 08:00. Monthly report: 1st of the month at 08:00.
 - **Politeness:** respect robots.txt and rate limits. Identify with a User-Agent. Back off on errors.
 - **Traceability:** store the prompt version and model with every LLM output, so outputs can be re-run when prompts change.
