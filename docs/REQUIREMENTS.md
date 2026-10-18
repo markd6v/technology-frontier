@@ -60,17 +60,17 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 - Source registry stored in the repo as data (YAML/JSON), covering the 25 starter sources in §5.1.
 - Reference pages built from the research brief: the 15 domains (subfields, signals to watch, research/product/people lists) and the people list with links.
 - Scheduled ingestion for every starter source that has a working feed or API.
-- **Page monitors** for the starter sources that have no feed: Anthropic News and Physical Intelligence first, then IEA, ARPA-E and imec. A monitor:
+- **Page monitors** for the starter sources that have no feed: Anthropic News, Physical Intelligence, IEA and imec (ARPA-E needs JavaScript, so it stays manual). A monitor:
   - is set up per source in the registry: list-page URL, a CSS selector for item links, an optional selector for the date, and an allowed URL prefix.
   - fetches the page at most once a day and records links it hasn't seen before as new items. The item's own page is fetched once, to get its title, date and meta description.
   - fails loudly. If the selector matches 0 links, or the link count drops by more than 80% from the last run, it records a health error and creates no items (protects against markup changes).
   - fetches static HTML only, no headless browser. A site that needs JavaScript to render stays manual.
 - Feed page: newest items first. Filter by domain, layer, source type and source. Text search over title and summary.
 - Health page for each source: last successful fetch, last error, items fetched in the last 7 days.
-- Owner sign-in (§2).
+- Owner sign-in (§2) is deferred to Phase 1: Phase 0 has nothing for the owner to write.
 
 **Acceptance:**
-- 22 of the 26 starter sources ingest automatically (17 feeds/APIs + 5 page monitors). The 4 manual ones show up as "manual check" links.
+- 21 of the 26 starter sources ingest automatically (17 feeds/APIs + 4 page monitors). The 5 manual ones show up as "manual check" links.
 - Adding a source means a data change and nothing else (no code).
 - Items are deduplicated by canonical URL (and by DOI/arXiv ID where one exists).
 - One failing source never blocks the others.
@@ -128,13 +128,13 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 | 11 | SemiAnalysis | Compute/Semis | commercial | RSS | `newsletter.semianalysis.com/feed` | OK (paywalled bodies, titles only) |
 | 12 | arXiv cs.RO | Robotics | scientific | arXiv API | as #1 with `cat:cs.RO` | OK |
 | 13 | Robotics: Science and Systems | Robotics | scientific | Manual (yearly) | `roboticsconference.org` | Conference. Yearly manual import of proceedings |
-| 14 | Physical Intelligence | Robotics | product | Page monitor | `physicalintelligence.company/blog` | No RSS found. Page monitor, priority 1 |
+| 14 | Physical Intelligence | Robotics | product | Page monitor | `pi.website/blog` (redirect target) | No RSS found. Page monitor, priority 1 |
 | 15 | bioRxiv | Biotech | scientific | bioRxiv API | `api.biorxiv.org/details/biorxiv/{from}/{to}/{cursor}` | OK (~1,800/week). Filtered to categories: synthetic biology, bioengineering, bioinformatics, genomics |
 | 16 | Nature Biotechnology | Biotech | scientific | RSS | `nature.com/nbt.rss` | OK |
 | 17 | ClinicalTrials.gov | Biotech/Neuro | commercial | API v2 | `clinicaltrials.gov/api/v2/studies` | OK. Filtered to gene therapy/editing, cell therapy, BCI/neurostimulation, Phase 1–3 only, new or updated in the last 7 days. Exact query terms kept in the registry `filter` |
 | 18 | IEA | Energy | commercial | Page monitor | `iea.org/news` | No RSS (404). Page monitor, priority 2 |
-| 19 | ARPA-E | Energy | scientific | Page monitor | `arpa-e.energy.gov/news-and-events/news-and-insights` | No RSS found. Page monitor, priority 2 |
-| 20 | imec | Semis | scientific | Page monitor | TBD | Press URL guessed wrong (404). Find the right one, then page monitor, priority 2 |
+| 19 | ARPA-E | Energy | scientific | Manual | `arpa-e.energy.gov/news-and-events/news-and-insights` | No RSS found, and the list renders with JavaScript, so a static page monitor can't read it |
+| 20 | imec | Semis | scientific | Page monitor | `imec-int.com/en` (links under `/en/press/`) | No press list page found. The homepage lists recent press releases |
 | 21 | Semiconductor Engineering | Semis | engineering | RSS | `semiengineering.com/feed/` | OK |
 | 22 | MIT Technology Review | Broad | product | RSS | `technologyreview.com/feed/` | OK |
 | 23 | IEEE Spectrum | Broad | engineering | RSS | `spectrum.ieee.org/feeds/feed.rss` | OK |
@@ -142,7 +142,7 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 | 25 | Y Combinator Companies | Commercial | commercial | Manual / TBD | `ycombinator.com/companies` | No public API. Check per batch by hand in v1 |
 | 26 | Stratechery | Commercial | commercial | RSS | `stratechery.com/feed/` | OK (free posts only) |
 
-Totals: **17 feed/API** (GitHub Trending counts here, approximated by the Search API), **5 page monitor**, **4 manual** (Artificial Analysis, RSS conference, Stanford ETR, YC Companies).
+Totals: **17 feed/API** (GitHub Trending counts here, approximated by the Search API), **4 page monitor**, **5 manual** (Artificial Analysis, RSS conference, ARPA-E, Stanford ETR, YC Companies).
 
 Also confirmed reachable, for Phase 3: OpenAlex API, GitHub API, PyPI Stats API, npm downloads API, HN Firebase API.
 
@@ -262,7 +262,7 @@ Must work at phone width (the owner reads it on a phone). Owner-only controls (r
 | 1 | Hosted or local? | Hosted on Vercel + Neon, so the owner can read on a phone |
 | 2 | LLM budget | Hard cap of $20/month, with the funnel and fallback in Phase 1 |
 | 3 | Daily brief | Dropped (2026-10-18). Email is used only for alerts; times are Asia/Dubai |
-| 4 | Feedless starter sources | Build page monitors (Anthropic and Physical Intelligence first, then IEA, ARPA-E, imec) |
+| 4 | Feedless starter sources | Build page monitors (Anthropic, Physical Intelligence, IEA, imec). ARPA-E stays manual because it renders with JavaScript |
 | 5 | bioRxiv / ClinicalTrials.gov | Narrow categories from the start (§5.1) |
 | 6 | Broad-tier domains | Registry and feed only until Phase 2. No LLM triage |
 | 7 | Access | Public, read-only. Owner signs in with a single password to write |

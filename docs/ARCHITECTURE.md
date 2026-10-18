@@ -283,12 +283,13 @@ All times are Asia/Dubai (UTC+4). Vercel Hobby fires anywhere within the hour, s
 | Job | Trigger | UTC cron | Fires (Dubai) | Does |
 |---|---|---|---|---|
 | `hourly` | GitHub Actions | `15 * * * *` | every hour | ingest due sources → prefilter → triage → poll open batches |
-| `extract` | Vercel Cron | `0 0 * * *` | 04:00–04:59 | select top 25 → submit extraction batch |
+| `extract` (P1) | Vercel Cron | `0 0 * * *` | 04:00–04:59 | select top 25 → submit extraction batch |
+| `ingest` (safety net) | Vercel Cron | `30 1 * * *` | 05:30–06:29 | same as the hourly ingest, in case GitHub Actions is down |
 | `weekly` (P2) | Vercel Cron | `0 4 * * 6` | Sat 08:00–08:59 | weekly report |
 | `monthly` (P3) | Vercel Cron | `0 4 1 * *` | 1st, 08:00–08:59 | monthly report |
 | `maintenance` | Vercel Cron | `0 23 * * *` | 03:00–03:59 | registry sync, storage check, failure alerts |
 
-- Every job takes a **Postgres advisory lock** named after the job, so overlapping triggers do nothing.
+- A job doesn't start while a `job_runs` row for the same job is `running` and less than 6 minutes old, so overlapping triggers do nothing. (Advisory locks don't survive Neon's transaction-mode pooler.)
 - Every run is written to `job_runs`.
 - The hourly GitHub workflow has a `workflow_dispatch` trigger for manual runs.
 - **Job auth:** `Authorization: Bearer $CRON_SECRET` (Vercel Cron sends this automatically when `CRON_SECRET` is set; the GitHub workflow sends it from repo secrets). Requests without it get 401.
@@ -365,4 +366,4 @@ Owner mutations are **server actions** that call `requireOwner()` first.
 6. Feed page with filters/search. Health view.
 7. Page monitor connector + configs for the 5 feedless sources.
 8. Deploy: Vercel, Neon production branch, `vercel.json` crons, GitHub hourly workflow, login.
-9. Check Phase 0 acceptance (R§4): 22/26 automatic, no duplicates, one source failing in isolation.
+9. Check Phase 0 acceptance (R§4): 21/26 automatic, no duplicates, one source failing in isolation.
