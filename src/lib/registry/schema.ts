@@ -37,6 +37,7 @@ const person = z.object({
 export const domainSchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/),
   name: z.string(),
+  short: z.string(),
   tier: z.enum(TIERS),
   relevance: z.string(),
   summary: z.string(),

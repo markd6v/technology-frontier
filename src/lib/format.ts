@@ -32,3 +32,22 @@ export function hostOf(url: string): string {
     return url;
   }
 }
+
+const TZ = "Asia/Dubai";
+const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: TZ });
+
+/** "Today", "Yesterday", "Thu 15 Oct", or "Thu 15 Oct 2025" outside the current year. */
+export function dayLabel(iso: string | Date, now = new Date()): string {
+  const d = new Date(iso);
+  const key = dayKey(d);
+  if (key === dayKey(now)) return "Today";
+  if (key === dayKey(new Date(now.getTime() - 86_400_000))) return "Yesterday";
+  const sameYear = key.slice(0, 4) === dayKey(now).slice(0, 4);
+  return d.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+    timeZone: TZ,
+  });
+}

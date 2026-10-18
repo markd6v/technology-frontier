@@ -205,3 +205,28 @@ export const getTotals = unstable_cache(
   ["totals"],
   { revalidate: REVALIDATE, tags: ["items"] },
 );
+
+export type BoardCell = { n: number; topTitle: string };
+
+/** Items per domain × layer over the last `days`, with the most-corroborated headline in each cell. */
+export const getLayerBoard = unstable_cache(
+  async (days: number): Promise<Record<string, Record<string, BoardCell>>> => {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const rows = await db().execute<{ domain: string; layer: string; n: number; top_title: string }>(sql`
+      with recent as (
+        select unnest(i.domains) as domain, i.layer, i.title, i.sort_at,
+               (select count(distinct m.source_id) from ${itemMentions} m where m.item_id = i.id) as srcs
+        from ${items} i
+        where i.sort_at >= ${since.toISOString()}
+      )
+      select domain, layer, count(*)::int as n,
+             (array_agg(title order by srcs desc, sort_at desc))[1] as top_title
+      from recent
+      group by domain, layer`);
+    const out: Record<string, Record<string, BoardCell>> = {};
+    for (const r of rows) (out[r.domain] ??= {})[r.layer] = { n: r.n, topTitle: r.top_title };
+    return out;
+  },
+  ["layer-board"],
+  { revalidate: REVALIDATE, tags: ["items"] },
+);

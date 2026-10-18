@@ -17,75 +17,66 @@ export const LAYER_QUESTION: Record<Layer, string> = {
 };
 
 export const TIER_LABEL: Record<Tier, string> = {
-  deep: "Deep · daily",
-  regular: "Regular · weekly",
-  broad: "Broad · monthly",
+  deep: "Deep coverage, reviewed daily",
+  regular: "Regular coverage, reviewed weekly",
+  broad: "Broad coverage, summarised monthly",
 };
 
-export function LayerBadge({ layer }: { layer: string }) {
+/** A row of text links where one is the current choice. Used for feed filters. */
+export function FilterRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-      style={{ color: `var(--layer-${layer})`, background: `var(--layer-${layer}-soft)` }}
-    >
-      <span className="size-1.5 rounded-full" style={{ background: `var(--layer-${layer})` }} aria-hidden />
-      {LAYER_LABEL[layer as Layer] ?? layer}
-    </span>
+    <div className="grid grid-cols-[3.5rem_1fr] items-baseline py-1.5 text-sm">
+      <span className="text-faint">{label}</span>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">{children}</div>
+    </div>
   );
 }
 
-export function TierBadge({ tier }: { tier: Tier }) {
-  const tone = tier === "deep" ? "text-accent bg-accent-soft" : "text-muted bg-surface-2";
-  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${tone}`}>{TIER_LABEL[tier]}</span>;
-}
-
-export function Chip({ href, children, active }: { href?: string; children: ReactNode; active?: boolean }) {
-  const cls = `inline-flex items-center rounded-md border px-2 py-0.5 text-xs ${
-    active ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface text-muted"
-  }`;
-  return href ? (
-    <Link href={href} className={`${cls} hover:border-accent hover:text-accent`}>
+export function FilterLink({ href, active, children }: { href: string; active?: boolean; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "true" : undefined}
+      className={`shrink-0 ${active ? "text-ink underline decoration-1 underline-offset-[6px]" : "text-muted hover:text-ink"}`}
+    >
       {children}
     </Link>
-  ) : (
-    <span className={cls}>{children}</span>
   );
 }
 
 export function PageHeader({ title, kicker, children }: { title: string; kicker?: ReactNode; children?: ReactNode }) {
   return (
     <header className="mb-8">
-      {kicker && <div className="mb-2 text-xs font-medium uppercase tracking-wider text-faint">{kicker}</div>}
-      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
-      {children && <div className="mt-3 max-w-3xl text-[15px] leading-relaxed text-muted">{children}</div>}
+      {kicker && <div className="mb-2 text-sm text-faint">{kicker}</div>}
+      <h1 className="font-serif text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
+      {children && <div className="mt-3 text-base leading-relaxed text-muted">{children}</div>}
     </header>
   );
 }
 
-export function Section({
-  title,
-  action,
-  children,
-  className = "",
-}: {
-  title: string;
-  action?: ReactNode;
-  children: ReactNode;
-  className?: string;
-}) {
+export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <section className={`mb-10 ${className}`}>
+    <section className="mt-12 first:mt-0">
       <div className="mb-3 flex items-baseline justify-between gap-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">{title}</h2>
-        {action}
+        <h2 className="font-serif text-xl font-semibold tracking-tight">{title}</h2>
+        {action && <div className="shrink-0 text-sm">{action}</div>}
       </div>
       {children}
     </section>
   );
 }
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-line bg-surface ${className}`}>{children}</div>;
+/** Ruled list: hairlines between rows, no boxes. */
+export function Rows({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`divide-y divide-line border-y border-line ${className}`}>{children}</div>;
+}
+
+export function MoreLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link href={href} className="text-accent hover:underline">
+      {children}
+    </Link>
+  );
 }
 
 export function ExternalLink({ href, children, className = "" }: { href: string; children: ReactNode; className?: string }) {
@@ -97,5 +88,5 @@ export function ExternalLink({ href, children, className = "" }: { href: string;
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-faint">{children}</p>;
+  return <p className="py-6 text-sm text-faint">{children}</p>;
 }

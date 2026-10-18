@@ -3,6 +3,7 @@
 
 - slug: ai
   name: Artificial intelligence
+  short: AI
   tier: deep
   relevance: Very high
   summary: >-
@@ -60,6 +61,7 @@
 
 - slug: compute
   name: Computing infrastructure
+  short: Compute
   tier: deep
   relevance: Very high
   summary: The infrastructure needed to run increasingly demanding software and AI systems.
@@ -101,6 +103,7 @@
 
 - slug: software
   name: Software infrastructure
+  short: Software
   tier: deep
   relevance: Very high
   summary: >-
@@ -142,6 +145,7 @@
 
 - slug: robotics
   name: Robotics & automation
+  short: Robotics
   tier: deep
   relevance: Very high
   summary: Advances in AI are potentially removing some of robotics' historical limitations.
@@ -184,6 +188,7 @@
 
 - slug: biotech
   name: Biotechnology
+  short: Biotech
   tier: regular
   relevance: Very high
   summary: AI is potentially accelerating protein design, drug discovery, and biological engineering.
@@ -230,6 +235,7 @@
 
 - slug: semiconductors
   name: Semiconductors
+  short: Semis
   tier: regular
   relevance: Very high
   summary: A foundational technology; progress here enables advances in many other fields.
@@ -271,6 +277,7 @@
 
 - slug: energy-generation
   name: Energy generation
+  short: Energy
   tier: regular
   relevance: Very high
   summary: Energy affects computing, transportation, manufacturing, and industrial development.
@@ -316,6 +323,7 @@
 
 - slug: energy-storage
   name: Energy storage & electrification
+  short: Storage
   tier: regular
   relevance: Very high
   summary: Monitored separately from generation because the technological and commercial dynamics differ.
@@ -356,6 +364,7 @@
 
 - slug: materials
   name: Advanced materials & manufacturing
+  short: Materials
   tier: broad
   relevance: High
   summary: Easy to underestimate; breakthroughs are often buried in publications rather than tech news.
@@ -388,6 +397,7 @@
 
 - slug: quantum
   name: Quantum technologies
+  short: Quantum
   tier: broad
   relevance: High, long horizon
   summary: Technical progress can be significant without immediately producing a large commercial market.
@@ -427,6 +437,7 @@
 
 - slug: space
   name: Space technologies
+  short: Space
   tier: broad
   relevance: High
   summary: Increasingly commercial, but capital-intensive and constrained by launch economics and regulation.
@@ -466,6 +477,7 @@
 
 - slug: neurotech
   name: Neuroscience & neurotechnology
+  short: Neurotech
   tier: broad
   relevance: High
   summary: Brain-computer interfaces, neural implants, neuroscience research, and brain mapping.
@@ -503,6 +515,7 @@
 
 - slug: security
   name: Cybersecurity & cryptography
+  short: Security
   tier: regular
   relevance: High
   summary: Security breakthroughs can create new markets quickly, especially when they expose widely deployed infrastructure.
@@ -538,6 +551,7 @@
 
 - slug: fintech
   name: Financial infrastructure
+  short: Fintech
   tier: regular
   relevance: High
   summary: >-
@@ -583,6 +597,7 @@
 
 - slug: comms
   name: Communications & sensing
+  short: Comms
   tier: broad
   relevance: High
   summary: Optical networking, wireless, satellite communications, advanced sensors, and connectivity infrastructure.

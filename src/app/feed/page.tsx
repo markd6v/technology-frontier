@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ItemCard } from "@/components/item-card";
-import { Card, Chip, Empty, LAYER_LABEL, PageHeader } from "@/components/ui";
+import { ItemList } from "@/components/item-list";
+import { Empty, FilterLink, FilterRow, LAYER_LABEL, PageHeader } from "@/components/ui";
 import { getFeed, PAGE_SIZE, type FeedFilters } from "@/lib/queries";
 import { KINDS, LAYERS, registry, type Layer } from "@/lib/registry";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Feed" };
+export const metadata: Metadata = { title: "Latest" };
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || undefined;
@@ -33,81 +33,98 @@ export default async function FeedPage({ searchParams }: { searchParams: Promise
   const { items, total } = await getFeed(filters);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const automaticSources = sources.filter((s) => s.method !== "manual");
-  const selectCls = "w-full rounded-lg border border-line bg-surface px-2.5 py-2 text-sm";
+  const sourceName = sources.find((s) => s.id === filters.source)?.name;
+  const fieldCls = "rounded-md border border-line bg-bg px-2.5 py-1.5 text-sm";
 
   return (
     <>
-      <PageHeader title="Feed" kicker={`${total.toLocaleString()} items`}>
-        Everything the sources reported, newest first. When one item turns up in several sources, it&apos;s merged
-        and marked with “+N sources”.
+      <PageHeader title="Latest">
+        {total.toLocaleString()} items, newest first. An item reported by several sources appears once, marked +N.
       </PageHeader>
 
-      <form action="/feed" className="mb-4 grid gap-2 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+      <form action="/feed" className="mb-4 flex flex-wrap gap-2">
         <input
           type="search"
           name="q"
           defaultValue={filters.q}
-          placeholder="Search titles and abstracts…"
-          className={selectCls}
+          placeholder="Search titles and abstracts"
+          className={`${fieldCls} min-w-0 flex-1`}
           aria-label="Search"
         />
-        <select name="domain" defaultValue={filters.domain ?? ""} className={selectCls} aria-label="Domain">
-          <option value="">All domains</option>
-          {domains.map((d) => (
-            <option key={d.slug} value={d.slug}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        <select name="kind" defaultValue={filters.kind ?? ""} className={selectCls} aria-label="Source type">
-          <option value="">All source types</option>
-          {KINDS.map((k) => (
-            <option key={k} value={k}>
-              {k}
-            </option>
-          ))}
-        </select>
-        <select name="source" defaultValue={filters.source ?? ""} className={selectCls} aria-label="Source">
-          <option value="">All sources</option>
-          {automaticSources.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        {filters.layer && <input type="hidden" name="layer" value={filters.layer} />}
-        <button className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white dark:text-black">Apply</button>
+        {(["domain", "layer", "source", "kind"] as const).map(
+          (k) => filters[k] && <input key={k} type="hidden" name={k} value={filters[k]} />,
+        )}
       </form>
 
-      <div className="mb-6 flex flex-wrap items-center gap-1.5">
-        <Chip href={hrefWith(filters, { layer: undefined, page: 1 })} active={!filters.layer}>
-          All layers
-        </Chip>
-        {LAYERS.map((l) => (
-          <Chip key={l} href={hrefWith(filters, { layer: l, page: 1 })} active={filters.layer === l}>
-            {LAYER_LABEL[l as Layer]}
-          </Chip>
-        ))}
-        {(filters.q || filters.domain || filters.kind || filters.source || filters.layer) && (
-          <Link href="/feed" className="ml-2 text-xs text-accent hover:underline">
-            Clear filters
-          </Link>
-        )}
+      <div className="mb-8 border-b border-line pb-2">
+        <FilterRow label="Domain">
+          <FilterLink href={hrefWith(filters, { domain: undefined, page: 1 })} active={!filters.domain}>
+            All
+          </FilterLink>
+          {domains.map((d) => (
+            <FilterLink key={d.slug} href={hrefWith(filters, { domain: d.slug, page: 1 })} active={filters.domain === d.slug}>
+              {d.short}
+            </FilterLink>
+          ))}
+        </FilterRow>
+        <FilterRow label="Layer">
+          <FilterLink href={hrefWith(filters, { layer: undefined, page: 1 })} active={!filters.layer}>
+            All
+          </FilterLink>
+          {LAYERS.map((l) => (
+            <FilterLink key={l} href={hrefWith(filters, { layer: l, page: 1 })} active={filters.layer === l}>
+              {LAYER_LABEL[l as Layer]}
+            </FilterLink>
+          ))}
+        </FilterRow>
+
+        <details className="group py-1.5 text-sm" open={Boolean(filters.source || filters.kind)}>
+          <summary className="cursor-pointer list-none text-muted hover:text-ink">
+            <span className="text-faint">More</span>{" "}
+            {sourceName || filters.kind ? (
+              <>
+                {[sourceName, filters.kind].filter(Boolean).join(", ")} ·{" "}
+                <Link href={hrefWith(filters, { source: undefined, kind: undefined, page: 1 })} className="text-accent">
+                  clear
+                </Link>
+              </>
+            ) : (
+              "source, type"
+            )}
+          </summary>
+          <form action="/feed" className="mt-2 flex flex-wrap gap-2">
+            <select name="source" defaultValue={filters.source ?? ""} className={fieldCls} aria-label="Source">
+              <option value="">All sources</option>
+              {automaticSources.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <select name="kind" defaultValue={filters.kind ?? ""} className={fieldCls} aria-label="Source type">
+              <option value="">All source types</option>
+              {KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
+            {(["domain", "layer", "q"] as const).map(
+              (k) => filters[k] && <input key={k} type="hidden" name={k} value={filters[k]} />,
+            )}
+            <button className="rounded-md border border-line px-3 py-1.5 text-sm hover:border-faint">Apply</button>
+          </form>
+        </details>
       </div>
 
-      <Card className="px-4">
-        {items.map((item) => (
-          <ItemCard key={item.id} item={item} />
-        ))}
-        {!items.length && (
-          <div className="py-6">
-            <Empty>Nothing matches these filters.</Empty>
-          </div>
-        )}
-      </Card>
+      {items.length ? (
+        <ItemList items={items} hideDomains={Boolean(filters.domain)} />
+      ) : (
+        <Empty>Nothing matches these filters.</Empty>
+      )}
 
       {pages > 1 && (
-        <nav className="mt-6 flex items-center justify-between text-sm" aria-label="Pagination">
+        <nav className="mt-8 flex items-center justify-between text-sm" aria-label="Pagination">
           {filters.page! > 1 ? (
             <Link href={hrefWith(filters, { page: filters.page! - 1 })} className="text-accent hover:underline">
               ← Newer

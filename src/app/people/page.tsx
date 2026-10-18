@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card, ExternalLink, PageHeader, Section } from "@/components/ui";
+import { ExternalLink, PageHeader, Rows, Section } from "@/components/ui";
 import { registry, type Person } from "@/lib/registry";
 
 export const metadata: Metadata = { title: "People" };
 
 function Name({ p }: { p: Person }) {
   return p.url ? (
-    <ExternalLink href={p.url} className="font-medium hover:text-accent hover:underline">
+    <ExternalLink href={p.url} className="hover:underline">
       {p.name}
     </ExternalLink>
   ) : (
-    <span className="font-medium">{p.name}</span>
+    <span>{p.name}</span>
   );
 }
 
@@ -24,57 +24,61 @@ export default function PeoplePage() {
 
   return (
     <>
-      <PageHeader title="People" kicker="Who recognizes the implications earliest">
-        Chosen for their contributions, technical insight, or closeness to important work, not follower counts.
-        For people who publish rarely, follow their papers and organizations instead of their social feeds.
+      <PageHeader title="People">
+        Who recognizes the implications earliest. Chosen for their contributions, technical insight, or closeness to
+        important work, not follower counts. For people who publish rarely, follow their papers and organizations
+        instead.
       </PageHeader>
 
       <Section title="Shortlist">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Rows>
           {shortlist.map((p) => (
-            <Card key={`${p.context}:${p.name}`} className="p-4">
-              <Name p={p} />
-              <div className="text-xs text-accent">{p.context}</div>
-              <p className="mt-1 text-sm text-muted">{p.focus}</p>
-            </Card>
+            <div key={`${p.context}:${p.name}`} className="py-3">
+              <div className="flex items-baseline justify-between gap-4">
+                <Name p={p} />
+                <span className="shrink-0 text-sm text-faint">{p.context}</span>
+              </div>
+              <p className="text-sm text-muted">{p.focus}</p>
+            </div>
           ))}
-        </div>
+        </Rows>
       </Section>
 
       <Section title="Cross-disciplinary interpreters">
-        <p className="mb-3 max-w-3xl text-sm text-muted">
+        <p className="mb-3 text-muted">
           They connect developments across industries and explain the economics. Investors and founders have a
           stake in the technologies they promote, so treat their views as hypotheses, not independent confirmation.
         </p>
-        <Card className="divide-y divide-line">
+        <Rows>
           {reference.interpreters.map((p) => (
-            <div key={p.name} className="grid gap-1 px-4 py-2.5 text-sm sm:grid-cols-[200px_1fr_1fr]">
+            <div key={p.name} className="py-3">
               <Name p={p} />
-              <span className="text-muted">{p.focus}</span>
-              <span className="text-muted">{p.why}</span>
+              <p className="text-sm text-muted">
+                {p.focus}. {p.why}
+              </p>
             </div>
           ))}
-        </Card>
+        </Rows>
       </Section>
 
       <Section title="Specialists by domain">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {domains.map((d) => (
-            <Card key={d.slug} className="p-4">
-              <Link href={`/d/${d.slug}`} className="font-semibold hover:text-accent">
+        {domains.map((d) => (
+          <div key={d.slug} className="mt-6 first:mt-0">
+            <h3 className="border-b border-line pb-1.5 text-sm text-faint">
+              <Link href={`/d/${d.slug}`} className="hover:text-ink">
                 {d.name}
               </Link>
-              <ul className="mt-2 space-y-1.5 text-sm">
-                {d.people.map((p) => (
-                  <li key={p.name}>
-                    <Name p={p} />
-                    <span className="text-muted"> — {p.focus}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          ))}
-        </div>
+            </h3>
+            <ul className="divide-y divide-line">
+              {d.people.map((p) => (
+                <li key={p.name} className="py-2.5">
+                  <Name p={p} />
+                  <span className="text-muted"> — {p.focus}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </Section>
     </>
   );
