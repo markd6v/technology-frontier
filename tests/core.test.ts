@@ -56,3 +56,12 @@ describe("content registry", () => {
     expect(automatic.length).toBeGreaterThanOrEqual(21);
   });
 });
+
+describe("driverUrl", () => {
+  it("drops libpq-only options Neon adds, keeps sslmode", async () => {
+    const { driverUrl } = await import("@/lib/db");
+    const out = new URL(driverUrl("postgres://u:p@ep-x-pooler.neon.tech/db?sslmode=require&channel_binding=require"));
+    expect(out.searchParams.get("sslmode")).toBe("require");
+    expect(out.searchParams.has("channel_binding")).toBe(false);
+  });
+});

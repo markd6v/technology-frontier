@@ -4,9 +4,20 @@ import * as schema from "./schema";
 
 export { schema };
 
+/** libpq-only URL options that postgres-js would otherwise send to the server as settings (and fail). */
+const LIBPQ_ONLY = ["channel_binding", "gssencmode", "target_session_attrs", "connect_timeout"];
+
+/** Neon's connection strings include `channel_binding=require`; postgres-js can't take it. */
+export function driverUrl(raw: string): string {
+  const url = new URL(raw);
+  for (const key of LIBPQ_ONLY) url.searchParams.delete(key);
+  return url.toString();
+}
+
 function createDb() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set (see .env.example)");
+  const raw = process.env.DATABASE_URL;
+  if (!raw) throw new Error("DATABASE_URL is not set (see .env.example)");
+  const url = driverUrl(raw);
   // prepare: false keeps us compatible with Neon's pooled (PgBouncer) endpoint.
   const client = postgres(url, { prepare: false, max: 5, idle_timeout: 20 });
   return { db: drizzle(client, { schema }), client };
