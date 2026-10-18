@@ -6,7 +6,7 @@ const config = z.object({
   server: z.enum(["biorxiv", "medrxiv"]).default("biorxiv"),
   categories: z.array(z.string()).min(1),
   lookbackDays: z.number().int().positive().default(2),
-  maxPages: z.number().int().positive().default(20),
+  maxPages: z.number().int().positive().default(5),
 });
 
 const page = z.object({
@@ -32,31 +32,33 @@ export const biorxivConnector = defineConnector({
   async fetch({ config, http, now }) {
     const from = day(new Date(now.getTime() - config.lookbackDays * 86_400_000));
     const to = day(now);
-    const wanted = new Set(config.categories.map((c) => c.toLowerCase()));
     const items: NormalizedItem[] = [];
 
-    for (let p = 0, cursor = 0; p < config.maxPages; p++) {
-      const res = await http.get(`https://api.biorxiv.org/details/${config.server}/${from}/${to}/${cursor}`, {
-        accept: "application/json",
-      });
-      const data = page.parse(JSON.parse(res.text));
-      if (data.collection.length === 0) break;
-      for (const paper of data.collection) {
-        if (!wanted.has(paper.category.toLowerCase())) continue;
-        items.push({
-          url: `https://www.${config.server}.org/content/${paper.doi}v${paper.version}`,
-          externalKind: "doi",
-          externalId: paper.doi.toLowerCase(),
-          title: paper.title.replace(/\s+/g, " ").trim(),
-          authors: paper.authors.split(/;\s*/).filter(Boolean).slice(0, 20),
-          publishedAt: parseDate(paper.date),
-          excerpt: excerpt(paper.abstract),
-          abstract: paper.abstract,
-        });
+    // Server-side category filter: ~2 s per request vs. paging through every new paper.
+    for (const category of config.categories) {
+      for (let p = 0, cursor = 0; p < config.maxPages; p++) {
+        const res = await http.get(
+          `https://api.biorxiv.org/details/${config.server}/${from}/${to}/${cursor}/json?category=${encodeURIComponent(category)}`,
+          { accept: "application/json" },
+        );
+        const data = page.parse(JSON.parse(res.text));
+        if (data.collection.length === 0) break;
+        for (const paper of data.collection) {
+          items.push({
+            url: `https://www.${config.server}.org/content/${paper.doi}v${paper.version}`,
+            externalKind: "doi",
+            externalId: paper.doi.toLowerCase(),
+            title: paper.title.replace(/\s+/g, " ").trim(),
+            authors: paper.authors.split(/;\s*/).filter(Boolean).slice(0, 20),
+            publishedAt: parseDate(paper.date),
+            excerpt: excerpt(paper.abstract),
+            abstract: paper.abstract,
+          });
+        }
+        cursor += data.collection.length;
+        const total = Number(data.messages[0]?.total ?? 0);
+        if (!total || cursor >= total) break;
       }
-      cursor += data.collection.length;
-      const total = Number(data.messages[0]?.total ?? 0);
-      if (!total || cursor >= total) break;
     }
     return { items };
   },

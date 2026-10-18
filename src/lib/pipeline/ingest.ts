@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, eq, inArray, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, lte, notInArray, or } from "drizzle-orm";
 import { connectorFor, type NormalizedItem } from "@/lib/connectors";
 import type { ConnectorState } from "@/lib/connectors/types";
 import { db, schema, type Database } from "@/lib/db";
@@ -16,6 +16,15 @@ const FREQUENCY_MS: Record<Frequency, number> = {
 };
 const MAX_BACKOFF_MS = 24 * 3600_000;
 const TIER_RANK: Record<Tier, number> = { deep: 0, regular: 1, broad: 2 };
+
+/** Drizzle wraps driver errors as "Failed query: <sql>"; the useful part is the cause. */
+export function errorMessage(err: unknown): string {
+  if (err instanceof Error) {
+    const cause = err.cause instanceof Error ? err.cause.message : undefined;
+    return cause ?? err.message;
+  }
+  return String(err);
+}
 
 export type SourceRunResult = {
   sourceId: string;
@@ -84,7 +93,14 @@ async function upsertItem(tx: Database, source: Source, item: NormalizedItem, no
       )
     : eq(schema.items.canonicalUrl, canonicalUrl);
 
-  let [existing] = await tx.select({ id: schema.items.id }).from(schema.items).where(match).limit(1);
+  const columns = {
+    id: schema.items.id,
+    abstract: schema.items.abstract,
+    excerpt: schema.items.excerpt,
+    authors: schema.items.authors,
+    publishedAt: schema.items.publishedAt,
+  };
+  let [existing] = await tx.select(columns).from(schema.items).where(match).limit(1);
   let inserted = false;
 
   if (!existing) {
@@ -109,24 +125,23 @@ async function upsertItem(tx: Database, source: Source, item: NormalizedItem, no
         tier: tierFor(domains),
       })
       .onConflictDoNothing()
-      .returning({ id: schema.items.id });
+      .returning(columns);
     if (rows[0]) {
       existing = rows[0];
       inserted = true;
     } else {
-      [existing] = await tx.select({ id: schema.items.id }).from(schema.items).where(match).limit(1);
+      [existing] = await tx.select(columns).from(schema.items).where(match).limit(1);
     }
   } else {
     // Fill gaps a later source knows more about (e.g. HF first, then the arXiv abstract).
-    await tx
-      .update(schema.items)
-      .set({
-        abstract: sql`coalesce(${schema.items.abstract}, ${item.abstract ?? null})`,
-        excerpt: sql`coalesce(${schema.items.excerpt}, ${item.excerpt ?? null})`,
-        authors: sql`coalesce(${schema.items.authors}, ${item.authors?.length ? item.authors : null}::text[])`,
-        publishedAt: sql`coalesce(${schema.items.publishedAt}, ${item.publishedAt ?? null}::timestamptz)`,
-      })
-      .where(eq(schema.items.id, existing.id));
+    const patch: Partial<typeof schema.items.$inferInsert> = {};
+    if (!existing.abstract && item.abstract) patch.abstract = item.abstract;
+    if (!existing.excerpt && item.excerpt) patch.excerpt = item.excerpt;
+    if (!existing.authors?.length && item.authors?.length) patch.authors = item.authors;
+    if (!existing.publishedAt && item.publishedAt) patch.publishedAt = item.publishedAt;
+    if (Object.keys(patch).length) {
+      await tx.update(schema.items).set(patch).where(eq(schema.items.id, existing.id));
+    }
   }
   if (!existing) return false;
 
@@ -195,7 +210,7 @@ export async function ingestSource(
     });
     return { sourceId: source.id, ok: true, fetched: result.items.length, inserted, ms: Date.now() - started };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = errorMessage(err);
     const failures = (stateRow?.consecutiveFailures ?? 0) + 1;
     const backoff = Math.min(MAX_BACKOFF_MS, 15 * 60_000 * 2 ** (failures - 1));
     await database
