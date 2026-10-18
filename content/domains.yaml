@@ -1,0 +1,620 @@
+# The 15 technology domains. Reference content for /d/[slug] pages.
+# tier: deep (daily) | regular (weekly) | broad (weekly summary + monthly deep dive)
+
+- slug: ai
+  name: Artificial intelligence
+  tier: deep
+  relevance: Very high
+  summary: >-
+    Deserves several independent monitoring streams because model research,
+    infrastructure, and commercial applications move at different speeds.
+  subfields: [Foundation models, Reasoning, Multimodal AI, Agents, World models]
+  research:
+    - { name: arXiv cs.AI, url: https://arxiv.org/list/cs.AI/recent, note: General AI research }
+    - { name: arXiv cs.LG, url: https://arxiv.org/list/cs.LG/recent, note: Machine learning breakthroughs }
+    - { name: arXiv cs.CL, url: https://arxiv.org/list/cs.CL/recent, note: Language models and NLP }
+    - { name: Hugging Face Papers, url: https://huggingface.co/papers, note: Trending research and implementations }
+    - { name: OpenReview, url: https://openreview.net, note: Conference submissions and peer-review discussions }
+    - { name: Google DeepMind, url: https://deepmind.google/research/, note: Frontier model research }
+    - { name: OpenAI Research, url: https://openai.com/research/, note: New model capabilities and research }
+    - { name: Anthropic Research, url: https://www.anthropic.com/research, note: Models, interpretability, and agent capabilities }
+    - { name: Meta AI Research, url: https://ai.meta.com/research/, note: Open models and foundational research }
+    - { name: Epoch AI, url: https://epoch.ai, note: Compute, scaling trends, model capabilities }
+  conferences: [NeurIPS, ICML, ICLR, ACL, CVPR]
+  products:
+    - { name: OpenAI, url: https://openai.com/news/, note: Model releases, API capabilities, agents }
+    - { name: Anthropic, url: https://www.anthropic.com/news, note: Claude, coding agents, enterprise AI }
+    - { name: Google DeepMind, url: https://deepmind.google/discover/blog/, note: Gemini, multimodal AI, robotics }
+    - { name: Meta AI, url: https://ai.meta.com/blog/, note: Open-weight models, consumer AI }
+    - { name: Mistral AI, url: https://mistral.ai/news, note: Efficient models and enterprise deployment }
+    - { name: Hugging Face, url: https://huggingface.co/blog, note: Open-source models and tools }
+    - { name: Cursor, url: https://cursor.com/blog, note: AI-native software development }
+    - { name: GitHub, url: https://github.blog, note: Copilot and developer workflows }
+    - { name: Artificial Analysis, url: https://artificialanalysis.ai, note: Independent model performance, pricing, speed }
+  people:
+    - { name: Andrej Karpathy, focus: "Deep technical intuition, AI engineering, education", priority: true }
+    - { name: Ilya Sutskever, focus: Foundational model research and scaling, priority: true }
+    - { name: Demis Hassabis, focus: Frontier AI and scientific applications, priority: true }
+    - { name: Dario Amodei, focus: "Scaling, AI capabilities, commercialization" }
+    - { name: Yann LeCun, focus: "Alternative architectures, world models" }
+    - { name: Fei-Fei Li, focus: "Computer vision, spatial intelligence" }
+    - { name: François Chollet, focus: "Reasoning, generalization, AI evaluation", priority: true }
+    - { name: Jim Fan, focus: "Embodied AI, agents, robotics", priority: true }
+    - { name: Jeff Dean, focus: Large-scale AI infrastructure and research }
+    - { name: Andrew Ng, focus: Practical AI applications and commercialization }
+    - { name: Swyx (Shawn Wang), focus: AI engineering ecosystem and developer trends }
+    - { name: Simon Willison, focus: Hands-on LLM experiments and developer tools, priority: true, url: https://simonwillison.net }
+  signals:
+    - Cost per successfully completed task
+    - Long-horizon agent reliability
+    - Performance on previously unsolved benchmarks
+    - New capabilities appearing in small models
+    - Open-weight models approaching proprietary model performance
+    - Improvements in inference efficiency
+    - Adoption of autonomous workflows
+  notes:
+    - >-
+      A model becoming 20% better on a benchmark is less commercially meaningful than a
+      model becoming reliable enough to perform a previously impossible business workflow.
+    - Compare model announcements with independent measurements (Artificial Analysis).
+
+- slug: compute
+  name: Computing infrastructure
+  tier: deep
+  relevance: Very high
+  summary: The infrastructure needed to run increasingly demanding software and AI systems.
+  subfields: [GPUs, Accelerators, Cloud, Distributed computing, Networking]
+  research:
+    - { name: USENIX, url: https://www.usenix.org, note: "Systems, operating systems, distributed computing" }
+    - { name: ACM SIGCOMM, url: https://www.sigcomm.org, note: Computer networking }
+    - { name: arXiv cs.DC, url: https://arxiv.org/list/cs.DC/recent, note: Distributed systems }
+    - { name: MLSys, url: https://mlsys.org, note: Machine learning systems }
+    - { name: NVIDIA Research, url: https://research.nvidia.com, note: Accelerated computing }
+    - { name: Google Research, url: https://research.google, note: Large-scale systems and computing }
+    - { name: Cloudflare Blog, url: https://blog.cloudflare.com, note: Networking and infrastructure engineering }
+  products:
+    - { name: NVIDIA Developer Blog, url: https://developer.nvidia.com/blog, note: "CUDA, GPUs, inference" }
+    - { name: AMD, url: https://www.amd.com/en/newsroom.html, note: Accelerators and processors }
+    - { name: AWS What's New, url: https://aws.amazon.com/new/, note: Cloud infrastructure }
+    - { name: Google Cloud Blog, url: https://cloud.google.com/blog, note: Cloud and AI infrastructure }
+    - { name: Microsoft Azure Updates, url: https://azure.microsoft.com/en-us/updates/, note: Infrastructure releases }
+    - { name: CoreWeave, url: https://www.coreweave.com/blog, note: GPU cloud infrastructure }
+    - { name: Nebius, url: https://nebius.com/blog, note: AI cloud and compute infrastructure }
+  people:
+    - { name: Jensen Huang, focus: "Accelerated computing, AI infrastructure strategy" }
+    - { name: Jeff Dean, focus: Distributed computing and large-scale AI }
+    - { name: Matei Zaharia, focus: "Distributed systems, Spark, ML infrastructure" }
+    - { name: Ion Stoica, focus: "Distributed systems, cloud infrastructure" }
+    - { name: Chris Lattner, focus: "Compilers, programming systems, AI compute" }
+    - { name: Jim Keller, focus: Processor architecture }
+    - { name: George Hotz, focus: Low-level systems and experimental compute }
+  signals:
+    - 10× cheaper inference
+    - 5× better memory efficiency
+    - A new interconnect architecture
+    - A new compiler enabling previously impractical workloads
+    - GPU utilization improving dramatically
+  notes:
+    - >-
+      The most interesting signal is often not a new GPU but a change in the economics of
+      computation; these can make entirely new products economical.
+
+- slug: software
+  name: Software infrastructure
+  tier: deep
+  relevance: Very high
+  summary: >-
+    Especially valuable with a software engineering background, because you can
+    independently test the technology.
+  subfields: [Databases, Programming languages, Developer tools, Operating systems]
+  research:
+    - { name: USENIX OSDI, url: https://www.usenix.org/conferences/byname/179, note: Operating systems and distributed systems }
+    - { name: ACM SIGMOD, url: https://sigmod.org, note: Databases and data management }
+    - { name: VLDB, url: https://vldb.org, note: Database research }
+    - { name: PLDI, url: https://www.sigplan.org/Conferences/PLDI/, note: Programming languages and compilers }
+    - { name: arXiv cs.PL, url: https://arxiv.org/list/cs.PL/recent, note: Language and compiler research }
+    - { name: GitHub Trending, url: https://github.com/trending, note: Emerging open-source infrastructure }
+    - { name: CNCF, url: https://www.cncf.io/blog/, note: Cloud-native technology }
+  products:
+    - { name: PostgreSQL, url: https://www.postgresql.org/about/newsarchive/ }
+    - { name: Cloudflare, url: https://blog.cloudflare.com }
+    - { name: Databricks, url: https://www.databricks.com/blog }
+    - { name: Snowflake, url: https://www.snowflake.com/en/blog/ }
+    - { name: Vercel, url: https://vercel.com/changelog }
+    - { name: Docker, url: https://www.docker.com/blog/ }
+    - { name: Kubernetes, url: https://kubernetes.io/blog/ }
+    - { name: GitHub, url: https://github.blog/changelog/ }
+    - { name: Deno, url: https://deno.com/blog }
+  people:
+    - { name: Martin Kleppmann, focus: Distributed systems and data infrastructure, url: https://martin.kleppmann.com }
+    - { name: Kelsey Hightower, focus: Cloud infrastructure and Kubernetes }
+    - { name: Salvatore Sanfilippo (antirez), focus: "Redis, software engineering", url: http://antirez.com }
+    - { name: D. Richard Hipp, focus: SQLite and database engineering }
+    - { name: Chris Lattner, focus: "LLVM, Swift, Mojo, compiler design" }
+    - { name: Mitchell Hashimoto, focus: "Developer tools, infrastructure", url: https://mitchellh.com }
+    - { name: Dax Raad, focus: Developer platforms and cloud tooling }
+    - { name: Pieter Levels, focus: Rapid product development and independent software businesses }
+  signals:
+    - New infrastructure projects that look like toys but attract highly sophisticated developers
+    - Sustained contributor growth and downstream dependencies (not just stars)
+  notes:
+    - Early technical adoption is often a useful leading indicator.
+
+- slug: robotics
+  name: Robotics & automation
+  tier: deep
+  relevance: Very high
+  summary: Advances in AI are potentially removing some of robotics' historical limitations.
+  subfields: [Humanoids, Industrial robots, Autonomous systems, Embodied AI]
+  research:
+    - { name: arXiv cs.RO, url: https://arxiv.org/list/cs.RO/recent, note: Robotics research }
+    - { name: "Robotics: Science and Systems", url: https://roboticsconference.org, note: Frontier robotics; open proceedings }
+    - { name: IEEE ICRA, url: https://www.ieee-ras.org/conferences-workshops/fully-sponsored/icra, note: Robotics and automation }
+    - { name: CoRL, url: https://www.corl.org, note: Robot learning }
+    - { name: MIT CSAIL, url: https://www.csail.mit.edu/news, note: Robotics and intelligent systems }
+    - { name: Stanford Robotics, url: https://robotics.stanford.edu, note: Robotics research }
+    - { name: Google DeepMind, url: https://deepmind.google/discover/blog/, note: Robotics foundation models }
+  products:
+    - { name: Figure AI, url: https://www.figure.ai/news }
+    - { name: Boston Dynamics, url: https://bostondynamics.com/blog/ }
+    - { name: Agility Robotics, url: https://www.agilityrobotics.com/about/press }
+    - { name: Physical Intelligence, url: https://www.pi.website/blog }
+    - { name: 1X Technologies, url: https://www.1x.tech/discover }
+    - { name: Unitree Robotics, url: https://www.unitree.com/news }
+    - { name: Tesla, url: https://www.tesla.com/AI }
+    - { name: NVIDIA Robotics, url: https://developer.nvidia.com/blog/tag/robotics/ }
+  people:
+    - { name: Pieter Abbeel, focus: "Robot learning, reinforcement learning" }
+    - { name: Sergey Levine, focus: Robot learning and generalization }
+    - { name: Chelsea Finn, focus: Robot learning and adaptation }
+    - { name: Jim Fan, focus: Foundation models for robotics }
+    - { name: Russ Tedrake, focus: "Robotics, control theory" }
+    - { name: Daniela Rus, focus: Robotics and autonomous systems }
+    - { name: Marc Raibert, focus: Legged robotics }
+    - { name: Karol Hausman, focus: Robotics foundation models }
+  signals:
+    - Generalization to tasks not seen during training
+    - Reduction in human demonstrations required
+    - Successful deployment outside controlled environments
+    - Robot cost per productive hour
+    - Reliability over thousands of operating hours
+    - Number of economically useful tasks per robot
+  notes:
+    - Pay much more attention to verified customer deployments than polished demonstration videos.
+
+- slug: biotech
+  name: Biotechnology
+  tier: regular
+  relevance: Very high
+  summary: AI is potentially accelerating protein design, drug discovery, and biological engineering.
+  subfields: [Gene editing, Synthetic biology, Protein engineering, AI drug discovery]
+  research:
+    - { name: bioRxiv, url: https://www.biorxiv.org, note: Early biology research }
+    - { name: medRxiv, url: https://www.medrxiv.org, note: Medical research preprints }
+    - { name: Nature Biotechnology, url: https://www.nature.com/nbt/, note: Biotechnology breakthroughs }
+    - { name: Nature Methods, url: https://www.nature.com/nmeth/, note: New experimental techniques }
+    - { name: Cell, url: https://www.cell.com/cell/home, note: Molecular and cellular biology }
+    - { name: Broad Institute, url: https://www.broadinstitute.org/news, note: Genomics and biomedical research }
+    - { name: Arc Institute, url: https://arcinstitute.org/news, note: Biological research and technology }
+    - { name: ClinicalTrials.gov, url: https://clinicaltrials.gov, note: Human clinical trials }
+  products:
+    - { name: Isomorphic Labs, url: https://www.isomorphiclabs.com/articles }
+    - { name: Recursion, url: https://www.recursion.com/news }
+    - { name: Ginkgo Bioworks, url: https://www.ginkgobioworks.com/news/ }
+    - { name: Beam Therapeutics, url: https://beamtx.com/news-events/ }
+    - { name: Intellia Therapeutics, url: https://www.intelliatx.com/news-events/ }
+    - { name: Moderna, url: https://news.modernatx.com }
+    - { name: Illumina, url: https://www.illumina.com/company/news-center.html }
+    - { name: Oxford Nanopore, url: https://nanoporetech.com/news }
+  people:
+    - { name: Jennifer Doudna, focus: CRISPR and gene editing }
+    - { name: David Liu, focus: "Base editing, prime editing" }
+    - { name: George Church, focus: "Synthetic biology, genomics" }
+    - { name: Feng Zhang, focus: Genome engineering }
+    - { name: David Baker, focus: Computational protein design }
+    - { name: Aviv Regev, focus: Computational biology and genomics }
+    - { name: Daphne Koller, focus: AI-driven drug discovery }
+    - { name: Drew Endy, focus: Synthetic biology }
+  signals:
+    - Cost of sequencing a genome
+    - Cost and speed of synthesizing DNA
+    - Gene-editing accuracy and delivery efficiency
+    - Protein-design success rates
+    - Time from candidate discovery to clinical testing
+    - Clinical trial outcomes
+    - Manufacturing cost per treatment
+  notes:
+    - A breakthrough in a cell culture or animal model is not equivalent to an effective human treatment.
+    - For commercial opportunities, delivery, safety, regulation, and manufacturing can matter more than the discovery.
+    - ClinicalTrials.gov separates promising laboratory results from technologies being tested in humans.
+
+- slug: semiconductors
+  name: Semiconductors
+  tier: regular
+  relevance: Very high
+  summary: A foundational technology; progress here enables advances in many other fields.
+  subfields: [Chip architectures, Fabrication, Packaging, Photonics]
+  research:
+    - { name: IEEE ISSCC, url: https://www.isscc.org, note: Advanced chip designs }
+    - { name: IEEE IEDM, url: https://www.ieee-iedm.org, note: Semiconductor devices }
+    - { name: imec, url: https://www.imec-int.com/en, note: Semiconductor R&D }
+    - { name: Semiconductor Engineering, url: https://semiengineering.com, note: Technical industry analysis }
+    - { name: IEEE Spectrum, url: https://spectrum.ieee.org/semiconductors, note: Chip and computing advances }
+    - { name: arXiv cs.AR, url: https://arxiv.org/list/cs.AR/recent, note: Processor architecture }
+  products:
+    - { name: TSMC, url: https://pr.tsmc.com/english/latest-news }
+    - { name: ASML, url: https://www.asml.com/en/news }
+    - { name: Intel Foundry, url: https://www.intel.com/content/www/us/en/foundry/overview.html }
+    - { name: NVIDIA, url: https://nvidianews.nvidia.com }
+    - { name: AMD, url: https://www.amd.com/en/newsroom.html }
+    - { name: Arm, url: https://newsroom.arm.com }
+    - { name: Cerebras, url: https://www.cerebras.ai/blog }
+    - { name: Groq, url: https://groq.com/blog }
+  people:
+    - { name: Jim Keller, focus: CPU architecture }
+    - { name: Chris Lattner, focus: Hardware/software co-design }
+    - { name: Jensen Huang, focus: Accelerated computing }
+    - { name: Lisa Su, focus: Semiconductor commercialization }
+    - { name: David Patterson, focus: "Computer architecture, RISC" }
+    - { name: John Hennessy, focus: Computer architecture }
+    - { name: Mark Papermaster, focus: Processor engineering }
+  signals:
+    - Performance per watt
+    - Memory bandwidth
+    - Interconnect bandwidth and latency
+    - Manufacturing yield
+    - Cost per transistor
+    - Packaging density
+    - New chip architectures achieving real workload advantages
+  notes:
+    - Track system-level performance and economics, not just transistor size.
+
+- slug: energy-generation
+  name: Energy generation
+  tier: regular
+  relevance: Very high
+  summary: Energy affects computing, transportation, manufacturing, and industrial development.
+  subfields: [Fusion, Fission, Solar, Geothermal]
+  research:
+    - { name: ARPA-E, url: https://arpa-e.energy.gov, note: High-risk energy R&D }
+    - { name: IEA, url: https://www.iea.org, note: Technology progress and deployment economics }
+    - { name: NREL, url: https://www.nrel.gov/news/, note: "Solar, renewables, energy systems" }
+    - { name: MIT Energy Initiative, url: https://energy.mit.edu/news/, note: Energy research }
+    - { name: ITER, url: https://www.iter.org/news, note: Fusion research }
+    - { name: Fusion Energy Sciences, url: https://www.energy.gov/science/fes/fusion-energy-sciences, note: Fusion R&D }
+    - { name: Joule, url: https://www.cell.com/joule/home, note: Energy research }
+  products:
+    - { name: Commonwealth Fusion Systems, url: https://cfs.energy/news-and-media }
+    - { name: Helion, url: https://www.helionenergy.com/news/ }
+    - { name: TAE Technologies, url: https://tae.com/news/ }
+    - { name: Oklo, url: https://oklo.com/newsroom/news/default.aspx }
+    - { name: TerraPower, url: https://www.terrapower.com/news }
+    - { name: Fervo Energy, url: https://fervoenergy.com/news/ }
+    - { name: First Solar, url: https://investor.firstsolar.com/news/default.aspx }
+  people:
+    - { name: Steven Koonin, focus: Energy systems and research }
+    - { name: David Keith, focus: Climate and energy technologies }
+    - { name: Dennis Whyte, focus: Fusion engineering }
+    - { name: Bob Mumgaard, focus: Fusion commercialization }
+    - { name: Jesse Jenkins, focus: Electricity systems }
+    - { name: Leah Stokes, focus: Energy policy and deployment }
+    - { name: Saul Griffith, focus: Electrification }
+  signals:
+    - Levelized cost of electricity
+    - Cost per installed kilowatt
+    - Capacity factor
+    - Fusion energy gain and engineering milestones
+    - Construction timelines
+    - Grid connection delays
+    - Regulatory approvals
+    - First commercial deployments
+  notes:
+    - For fusion, distinguish plasma physics milestones from economically viable net electricity generation.
+    - >-
+      The IEA's energy innovation reporting tracks milestones, patents, financing and
+      deployment (e.g. perovskite solar, fusion, sodium-ion, geothermal).
+
+- slug: energy-storage
+  name: Energy storage & electrification
+  tier: regular
+  relevance: Very high
+  summary: Monitored separately from generation because the technological and commercial dynamics differ.
+  subfields: [Batteries, Grid storage, Power electronics]
+  research:
+    - { name: Argonne National Laboratory, url: https://www.anl.gov/news }
+    - { name: Berkeley Lab, url: https://newscenter.lbl.gov }
+    - { name: Nature Energy, url: https://www.nature.com/nenergy/ }
+    - { name: Journal of Power Sources, url: https://www.sciencedirect.com/journal/journal-of-power-sources }
+    - { name: IEA, url: https://www.iea.org }
+    - { name: Battery500 Consortium, url: https://www.pnnl.gov/projects/battery500 }
+  products:
+    - { name: CATL, url: https://www.catl.com/en/news/ }
+    - { name: BYD, url: https://www.byd.com/eu/news }
+    - { name: QuantumScape, url: https://www.quantumscape.com/resources/ }
+    - { name: Form Energy, url: https://formenergy.com/news/ }
+    - { name: Northvolt, url: https://northvolt.com, note: Historical case study of manufacturing and commercialization risk }
+    - { name: Tesla Energy, url: https://www.tesla.com/energy }
+  people:
+    - { name: Shirley Meng, focus: Battery science }
+    - { name: Jeff Dahn, focus: Lithium-ion battery research }
+    - { name: Yet-Ming Chiang, focus: Batteries and materials }
+    - { name: Venkat Srinivasan, focus: Energy storage research }
+    - { name: Yi Cui, focus: Nanomaterials and batteries }
+    - { name: Stan Whittingham, focus: Lithium-ion battery development }
+  signals:
+    - Battery cost per kWh
+    - Energy density
+    - Cycle life
+    - Charging speed
+    - Safety and thermal stability
+    - Manufacturing yield
+    - Storage duration and round-trip efficiency
+  notes:
+    - >-
+      Particularly interesting: technologies that make storage viable where batteries have
+      historically been too expensive, heavy, or short-lived.
+
+- slug: materials
+  name: Advanced materials & manufacturing
+  tier: broad
+  relevance: High
+  summary: Easy to underestimate; breakthroughs are often buried in publications rather than tech news.
+  subfields: [Nanomaterials, Superconductors, Metamaterials, Additive manufacturing]
+  research:
+    - { name: Materials Project, url: https://next-gen.materialsproject.org, note: Computational materials discovery }
+    - { name: Nature Materials, url: https://www.nature.com/nmat/, note: Materials science }
+    - { name: Advanced Materials, url: https://advanced.onlinelibrary.wiley.com/journal/15214095, note: New materials }
+    - { name: Materials Research Society, url: https://www.mrs.org, note: Materials research }
+    - { name: NIST, url: https://www.nist.gov/materials, note: Materials measurement and standards }
+    - { name: arXiv cond-mat.mtrl-sci, url: https://arxiv.org/list/cond-mat.mtrl-sci/recent, note: Preprints }
+  products:
+    - { name: Desktop Metal, url: https://www.desktopmetal.com, note: Monitor technology and ownership developments }
+    - { name: Formlabs, url: https://formlabs.com/blog/ }
+    - { name: Carbon, url: https://www.carbon3d.com/resources }
+    - { name: Applied Materials, url: https://www.appliedmaterials.com/us/en/newsroom.html }
+    - { name: VulcanForms, url: https://vulcanforms.com }
+  people:
+    - { name: Omar Yaghi, focus: Metal-organic frameworks }
+    - { name: Kristin Persson, focus: Computational materials discovery }
+    - { name: Zhenan Bao, focus: Flexible electronics and polymers }
+    - { name: John Rogers, focus: Bioelectronics and advanced materials }
+    - { name: Chad Mirkin, focus: Nanotechnology }
+  signals:
+    - Order-of-magnitude improvement in a useful property while staying manufacturable
+    - Strength-to-weight ratio, conductivity, durability, thermal performance
+    - Production cost
+  notes:
+    - Laboratory records are common. Scalable production is much rarer.
+
+- slug: quantum
+  name: Quantum technologies
+  tier: broad
+  relevance: High, long horizon
+  summary: Technical progress can be significant without immediately producing a large commercial market.
+  subfields: [Quantum computing, Quantum communication, Quantum sensing]
+  research:
+    - { name: arXiv quant-ph, url: https://arxiv.org/list/quant-ph/recent }
+    - { name: Google Quantum AI, url: https://quantumai.google }
+    - { name: IBM Quantum, url: https://www.ibm.com/quantum/blog, note: "Hardware, error correction, algorithms, software" }
+    - { name: Quantum (journal), url: https://quantum-journal.org }
+    - { name: Quanta Magazine, url: https://www.quantamagazine.org, note: Accessible scientific analysis }
+    - { name: APS Physics, url: https://physics.aps.org }
+  products:
+    - { name: IBM Quantum, url: https://www.ibm.com/quantum }
+    - { name: Google Quantum AI, url: https://quantumai.google }
+    - { name: IonQ, url: https://ionq.com/news }
+    - { name: Quantinuum, url: https://www.quantinuum.com/news }
+    - { name: PsiQuantum, url: https://www.psiquantum.com/news }
+    - { name: QuEra, url: https://www.quera.com/news }
+    - { name: D-Wave, url: https://www.dwavequantum.com/company/newsroom/ }
+  people:
+    - { name: John Preskill, focus: Quantum information theory }
+    - { name: Scott Aaronson, focus: Quantum computing theory, url: https://scottaaronson.blog }
+    - { name: Hartmut Neven, focus: Quantum hardware and research }
+    - { name: Jay Gambetta, focus: Quantum computing systems }
+    - { name: Peter Shor, focus: Quantum algorithms }
+    - { name: Mikhail Lukin, focus: Neutral-atom quantum computing }
+    - { name: Michelle Simmons, focus: Silicon quantum computing }
+  signals:
+    - Logical versus physical qubit performance
+    - Error correction overhead
+    - Gate fidelity
+    - Useful circuit depth
+    - Reproducible advantage over classical algorithms
+    - Cost of useful quantum computation
+  notes:
+    - What matters most is an economically useful task that classical computing can't do competitively.
+
+- slug: space
+  name: Space technologies
+  tier: broad
+  relevance: High
+  summary: Increasingly commercial, but capital-intensive and constrained by launch economics and regulation.
+  subfields: [Launch, Satellites, Earth observation, In-space manufacturing]
+  research:
+    - { name: NASA Technical Reports Server, url: https://ntrs.nasa.gov, note: "Papers, engineering reports, patents" }
+    - { name: NASA Technology, url: https://www.nasa.gov/technology/ }
+    - { name: ESA, url: https://www.esa.int }
+    - { name: AIAA, url: https://www.aiaa.org }
+    - { name: arXiv astro-ph, url: https://arxiv.org/list/astro-ph/recent }
+    - { name: SpaceNews, url: https://spacenews.com }
+  products:
+    - { name: SpaceX, url: https://www.spacex.com/updates/ }
+    - { name: Rocket Lab, url: https://www.rocketlabcorp.com/updates/ }
+    - { name: Blue Origin, url: https://www.blueorigin.com/news }
+    - { name: Planet Labs, url: https://www.planet.com/pulse/ }
+    - { name: Axiom Space, url: https://www.axiomspace.com/news }
+    - { name: Varda Space Industries, url: https://www.varda.com }
+    - { name: Relativity Space, url: https://www.relativityspace.com }
+  people:
+    - { name: Elon Musk, focus: Launch systems and commercialization }
+    - { name: Peter Beck, focus: Launch engineering and space business }
+    - { name: Gwynne Shotwell, focus: Space operations and commercialization }
+    - { name: Jonathan McDowell, focus: Satellite and launch analysis, url: https://planet4589.org }
+    - { name: Eric Berger, focus: Space industry reporting }
+    - { name: Casey Handmer, focus: Space engineering and commercialization, url: https://caseyhandmer.wordpress.com }
+  signals:
+    - Launch cost per kilogram
+    - Launch frequency
+    - Reusability and turnaround time
+    - Satellite manufacturing cost
+    - Cost per unit of Earth observation data
+    - In-orbit servicing capabilities
+    - Space-based manufacturing economics
+  notes:
+    - What becomes possible when launch costs fall enough to enable businesses that previously made no economic sense?
+
+- slug: neurotech
+  name: Neuroscience & neurotechnology
+  tier: broad
+  relevance: High
+  summary: Brain-computer interfaces, neural implants, neuroscience research, and brain mapping.
+  subfields: [Brain-computer interfaces, Neural stimulation, Brain mapping]
+  research:
+    - { name: Nature Neuroscience, url: https://www.nature.com/neuro/ }
+    - { name: Neuron, url: https://www.cell.com/neuron/home }
+    - { name: Allen Institute, url: https://alleninstitute.org/news/ }
+    - { name: BRAIN Initiative, url: https://braininitiative.nih.gov }
+    - { name: arXiv q-bio.NC, url: https://arxiv.org/list/q-bio.NC/recent }
+    - { name: ClinicalTrials.gov, url: https://clinicaltrials.gov }
+  products:
+    - { name: Neuralink, url: https://neuralink.com/blog/ }
+    - { name: Synchron, url: https://synchron.com/news }
+    - { name: Precision Neuroscience, url: https://precisionneuro.io/news }
+    - { name: Paradromics, url: https://www.paradromics.com/news }
+    - { name: Blackrock Neurotech, url: https://blackrockneurotech.com/news/ }
+  people:
+    - { name: Karl Deisseroth, focus: Optogenetics and neuroscience }
+    - { name: Edward Boyden, focus: Neurotechnology }
+    - { name: Rafael Yuste, focus: Brain mapping }
+    - { name: Mary Lou Jepsen, focus: Brain imaging technology }
+    - { name: John Donoghue, focus: Brain-computer interfaces }
+    - { name: Michael Shadlen, focus: Neural computation }
+  signals:
+    - Neural decoding accuracy
+    - Communication bandwidth
+    - Implant longevity
+    - Surgical complexity
+    - Number of patients treated
+    - Clinical improvements
+    - Regulatory milestones
+  notes:
+    - Independent clinical results matter much more than demonstration videos.
+
+- slug: security
+  name: Cybersecurity & cryptography
+  tier: regular
+  relevance: High
+  summary: Security breakthroughs can create new markets quickly, especially when they expose widely deployed infrastructure.
+  subfields: [Post-quantum cryptography, Privacy, Identity, AI security]
+  research:
+    - { name: USENIX Security, url: https://www.usenix.org/conferences/byname/108 }
+    - { name: IEEE Security & Privacy, url: https://www.computer.org/csdl/magazine/sp }
+    - { name: IACR ePrint, url: https://eprint.iacr.org }
+    - { name: Google Project Zero, url: https://googleprojectzero.blogspot.com }
+    - { name: NIST Cybersecurity, url: https://www.nist.gov/cybersecurity }
+    - { name: arXiv cs.CR, url: https://arxiv.org/list/cs.CR/recent }
+  products:
+    - { name: Cloudflare, url: https://blog.cloudflare.com/tag/security/ }
+    - { name: Google Security Blog, url: https://security.googleblog.com }
+    - { name: Microsoft Security, url: https://www.microsoft.com/en-us/security/blog/ }
+    - { name: CrowdStrike, url: https://www.crowdstrike.com/en-us/blog/ }
+    - { name: Wiz, url: https://www.wiz.io/blog }
+    - { name: Trail of Bits, url: https://blog.trailofbits.com }
+  people:
+    - { name: Bruce Schneier, focus: Security and cryptography, url: https://www.schneier.com }
+    - { name: Dan Boneh, focus: Applied cryptography }
+    - { name: Tavis Ormandy, focus: Vulnerability research }
+    - { name: Katie Moussouris, focus: Vulnerability disclosure }
+    - { name: Matthew Green, focus: Cryptography, url: https://blog.cryptographyengineering.com }
+    - { name: Filippo Valsorda, focus: Practical cryptographic engineering, url: https://words.filippo.io }
+  signals:
+    - New vulnerability classes
+    - Post-quantum cryptography adoption
+    - Automated vulnerability discovery
+    - AI-driven security testing
+    - Cost of protecting software systems
+    - New privacy-preserving computation methods
+
+- slug: fintech
+  name: Financial infrastructure
+  tier: regular
+  relevance: High
+  summary: >-
+    Blockchain is one part of a broader financial-infrastructure category; not every
+    financial innovation requires a blockchain.
+  subfields: [Blockchain, Stablecoins, Tokenization, Payment systems]
+  research:
+    - { name: Ethereum Research, url: https://ethresear.ch }
+    - { name: Ethereum Improvement Proposals, url: https://eips.ethereum.org }
+    - { name: Bitcoin Improvement Proposals, url: https://github.com/bitcoin/bips }
+    - { name: IACR ePrint, url: https://eprint.iacr.org }
+    - { name: a16z Crypto, url: https://a16zcrypto.com/posts/ }
+    - { name: Paradigm Research, url: https://www.paradigm.xyz/writing }
+    - { name: BIS Innovation Hub, url: https://www.bis.org/about/bisih/ }
+  products:
+    - { name: Ethereum, url: https://blog.ethereum.org }
+    - { name: Solana, url: https://solana.com/news }
+    - { name: Stripe, url: https://stripe.com/blog }
+    - { name: Circle, url: https://www.circle.com/blog }
+    - { name: Coinbase, url: https://www.coinbase.com/blog }
+    - { name: Visa, url: https://usa.visa.com/about-visa/newsroom.html }
+    - { name: Chainlink, url: https://blog.chain.link }
+  people:
+    - { name: Vitalik Buterin, focus: Blockchain architecture and cryptoeconomics, url: https://vitalik.eth.limo }
+    - { name: Anatoly Yakovenko, focus: High-performance blockchain systems }
+    - { name: Dan Robinson, focus: Blockchain research and market structure }
+    - { name: Georgios Konstantopoulos, focus: Cryptographic and blockchain engineering }
+    - { name: Balaji Srinivasan, focus: Crypto infrastructure and technology adoption }
+    - { name: Matt Huang, focus: Crypto infrastructure investing }
+    - { name: Austin Federa, focus: Blockchain ecosystems and infrastructure }
+  signals:
+    - Stablecoin transaction volume adjusted for economic activity
+    - Real-world merchant adoption
+    - Cross-border payment costs
+    - Settlement times
+    - Tokenization of financial assets
+    - Regulatory changes
+    - Developer activity
+    - Institutional infrastructure adoption
+  notes:
+    - Be careful with TVL, token prices, and raw transaction counts; speculation and bots distort them.
+    - The strongest signal is a financial workflow becoming meaningfully cheaper, faster, or more accessible.
+
+- slug: comms
+  name: Communications & sensing
+  tier: broad
+  relevance: High
+  summary: Optical networking, wireless, satellite communications, advanced sensors, and connectivity infrastructure.
+  subfields: [6G, Optical networks, Satellite connectivity, LiDAR, Sensors]
+  research:
+    - { name: IEEE Communications Society, url: https://www.comsoc.org }
+    - { name: ACM SIGCOMM, url: https://www.sigcomm.org }
+    - { name: OFC, url: https://www.ofcconference.org, note: Optical communications }
+    - { name: 3GPP, url: https://www.3gpp.org, note: Cellular standards }
+    - { name: arXiv cs.NI, url: https://arxiv.org/list/cs.NI/recent }
+    - { name: NIST, url: https://www.nist.gov/communications-technology }
+  products:
+    - { name: Nokia Bell Labs, url: https://www.bell-labs.com }
+    - { name: Ericsson, url: https://www.ericsson.com/en/newsroom }
+    - { name: Qualcomm, url: https://www.qualcomm.com/news }
+    - { name: Starlink, url: https://www.starlink.com/updates }
+    - { name: AST SpaceMobile, url: https://ast-science.com/news/ }
+    - { name: Lumentum, url: https://www.lumentum.com/en/newsroom }
+  people:
+    - { name: Andrea Goldsmith, focus: Wireless communications }
+    - { name: Robert W. Heath Jr., focus: Wireless systems }
+    - { name: John Cioffi, focus: Communications engineering }
+    - { name: David Tse, focus: Information theory and wireless systems }
+    - { name: Vint Cerf, focus: Internet architecture and networking }
+    - { name: Radia Perlman, focus: Networking protocols }
+  signals:
+    - Cost per transmitted bit
+    - Spectral efficiency
+    - Latency
+    - Network capacity
+    - Power consumption
+    - Coverage improvements
+    - New sensor accuracy and manufacturing cost
+  notes:
+    - A technology that dramatically improves bandwidth or sensing can enable products that were previously impossible.

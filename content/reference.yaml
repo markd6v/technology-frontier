@@ -1,0 +1,91 @@
+# Cross-cutting reference content: universal sources, publications, interpreters,
+# commercial signals and the cross-domain watchlist.
+
+crossDomain:
+  - { pair: AI + biology, domains: [ai, biotech], why: Programmable drug discovery and biological design }
+  - { pair: AI + robotics, domains: [ai, robotics], why: General-purpose physical automation }
+  - { pair: AI + semiconductors, domains: [ai, semiconductors], why: Automated chip design }
+  - { pair: AI + energy, domains: [ai, energy-generation], why: "Power demand, grid optimization, new infrastructure" }
+  - { pair: Materials + energy, domains: [materials, energy-storage], why: New battery chemistries and photovoltaic cells }
+  - { pair: Space + communications, domains: [space, comms], why: Satellite-based connectivity }
+  - { pair: Cryptography + finance, domains: [security, fintech], why: Programmable financial infrastructure }
+
+universalSources:
+  - { name: arXiv, url: https://arxiv.org, provides: Scientific preprints, advantage: Very early research signals }
+  - { name: OpenAlex, url: https://openalex.org, provides: "Publications, citations, relationships", advantage: Discover emerging research clusters }
+  - { name: Google Scholar, url: https://scholar.google.com, provides: Academic literature and citation tracking, advantage: Follow influential researchers and papers }
+  - { name: GitHub Trending, url: https://github.com/trending, provides: Rapidly gaining developer projects, advantage: Early engineering adoption }
+  - { name: Hacker News, url: https://news.ycombinator.com, provides: "Technical discussions, launches, experiments", advantage: Early developer sentiment }
+  - { name: IEEE Spectrum, url: https://spectrum.ieee.org, provides: Engineering developments across industries, advantage: Cross-disciplinary engineering coverage }
+  - { name: MIT Technology Review, url: https://www.technologyreview.com, provides: Important emerging technologies, advantage: High-quality editorial filtering }
+  - { name: Nature, url: https://www.nature.com, provides: Peer-reviewed scientific discoveries, advantage: Research validation }
+  - { name: Science, url: https://www.science.org, provides: Major scientific discoveries, advantage: Research validation }
+  - { name: Google Patents, url: https://patents.google.com, provides: Patent applications and technical inventions, advantage: Early indications of industrial R&D }
+  - { name: Product Hunt, url: https://www.producthunt.com, provides: Newly launched software products, advantage: Product experimentation }
+  - { name: Y Combinator, url: https://www.ycombinator.com/companies, provides: New startups and commercial applications, advantage: Early founder activity }
+
+periodicReviews:
+  - { name: Stanford Emerging Technology Review, url: https://setr.stanford.edu, note: Cross-disciplinary assessment of progress and barriers to deployment }
+  - { name: "World Economic Forum: Top 10 Emerging Technologies", url: https://www.weforum.org/publications/series/top-10-emerging-technologies/, note: Annual selection approaching practical relevance }
+
+commercialSignals:
+  - signal: Startup formation
+    sources:
+      - { name: YC Companies, url: https://www.ycombinator.com/companies }
+      - { name: Crunchbase, url: https://www.crunchbase.com }
+      - { name: Dealroom, url: https://dealroom.co }
+    tells: What founders are beginning to build
+  - signal: Venture investment
+    sources:
+      - { name: PitchBook, url: https://pitchbook.com }
+      - { name: Crunchbase, url: https://www.crunchbase.com }
+    tells: Where capital is moving
+  - signal: Developer adoption
+    sources:
+      - { name: GitHub, url: https://github.com }
+      - { name: PyPI Stats, url: https://pypistats.org }
+      - { name: npm, url: https://www.npmjs.com }
+    tells: Which technologies developers actually use
+  - signal: Customer demand
+    sources:
+      - { name: Google Trends, url: https://trends.google.com }
+      - { name: G2, url: https://www.g2.com }
+    tells: Whether interest is turning into demand
+  - signal: Hiring
+    sources:
+      - { name: LinkedIn Jobs, url: https://www.linkedin.com/jobs/ }
+    tells: Which capabilities companies are investing in
+  - signal: Regulation and deployment
+    sources:
+      - { name: FDA, url: https://www.fda.gov/news-events }
+      - { name: SEC, url: https://www.sec.gov/newsroom }
+      - { name: IEA, url: https://www.iea.org }
+    tells: Which technologies can realistically enter markets
+
+publications:
+  - { name: Import AI, url: https://importai.substack.com, focus: AI research and implications }
+  - { name: The Batch, url: https://www.deeplearning.ai/the-batch/, focus: AI developments }
+  - { name: Interconnects, url: https://www.interconnects.ai, focus: AI research and model development, priority: true }
+  - { name: SemiAnalysis, url: https://newsletter.semianalysis.com, focus: "Semiconductors, AI compute, infrastructure", priority: true }
+  - { name: Stratechery, url: https://stratechery.com, focus: Technology strategy, priority: true }
+  - { name: Benedict Evans, url: https://www.ben-evans.com, focus: Technology industry trends, priority: true }
+  - { name: Not Boring, url: https://www.notboring.co, focus: Emerging technologies and businesses, priority: true }
+  - { name: The Pragmatic Engineer, url: https://newsletter.pragmaticengineer.com, focus: Software engineering industry }
+  - { name: MIT Technology Review, url: https://www.technologyreview.com, focus: Broad technology developments, priority: true }
+  - { name: IEEE Spectrum, url: https://spectrum.ieee.org, focus: Engineering breakthroughs, priority: true }
+  - { name: Quanta Magazine, url: https://www.quantamagazine.org, focus: Mathematics and fundamental science, priority: true }
+  - { name: a16z, url: https://a16z.com, focus: Technology commercialization }
+
+interpreters:
+  - { name: Patrick Collison, focus: "Science, technology, economic progress", why: Identifying important advances across disciplines, priority: true }
+  - { name: Tyler Cowen, focus: "Economics, innovation, scientific progress", why: Understanding the broader implications of technology, url: https://marginalrevolution.com }
+  - { name: Marc Andreessen, focus: "Technology platforms, venture capital", why: Identifying new computing paradigms }
+  - { name: Elad Gil, focus: Emerging technology companies, why: Understanding commercialization and market formation, priority: true, url: https://blog.eladgil.com }
+  - { name: Paul Graham, focus: "Startups, technology adoption", why: Recognizing early founder opportunities, url: https://paulgraham.com/articles.html }
+  - { name: Sam Altman, focus: "AI, computing, energy", why: Understanding large technological bets, url: https://blog.samaltman.com }
+  - { name: Nat Friedman, focus: "Software, AI, scientific research", why: Connecting research and practical applications, priority: true }
+  - { name: Daniel Gross, focus: AI and technology investing, why: Identifying technical talent and emerging companies }
+  - { name: Benedict Evans, focus: Technology industry analysis, why: Understanding adoption and market structure, priority: true, url: https://www.ben-evans.com }
+  - { name: Ben Thompson, focus: Technology strategy, why: Understanding where economic value accumulates, priority: true, url: https://stratechery.com }
+  - { name: Dwarkesh Patel, focus: "AI, computing, science", why: Long-form interviews with frontier researchers, priority: true, url: https://www.dwarkesh.com }
+  - { name: Packy McCormick, focus: Technology businesses and emerging industries, why: Connecting scientific progress to startup opportunities, url: https://www.notboring.co }
