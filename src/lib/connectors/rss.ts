@@ -48,6 +48,10 @@ export const rssConnector = defineConnector({
       accept: "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8",
     });
     if (res.notModified) return { items: [] };
+    // Some publishers (e.g. nature.com) answer datacenter IPs with an HTML cookie/bot page.
+    if (/^\s*(<!doctype html|<html)/i.test(res.text)) {
+      throw new Error(`got an HTML page instead of a feed from ${res.url} (likely a cookie or bot check)`);
+    }
 
     const feed = await parser.parseString(res.text);
     const items: NormalizedItem[] = [];

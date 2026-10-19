@@ -173,3 +173,11 @@ describe("page-monitor", () => {
     await expect(pageMonitorConnector.fetch(ctx(config, http))).rejects.toThrow(/robots\.txt/);
   });
 });
+
+describe("rss: HTML instead of a feed", () => {
+  it("fails with a clear message", async () => {
+    const http = fakeHttp([[/nature/, "<!DOCTYPE html><html><head><script async src=x></script></head></html>"]]);
+    const config = rssConnector.configSchema.parse({ url: "https://www.nature.com/nenergy.rss" });
+    await expect(rssConnector.fetch(ctx(config, http))).rejects.toThrow(/HTML page instead of a feed/);
+  });
+});
