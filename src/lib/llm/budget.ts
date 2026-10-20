@@ -1,4 +1,4 @@
-import { gte, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { schema, type Database } from "@/lib/db";
 
 export type BudgetCheck = { ok: true } | { ok: false; reason: string };
@@ -21,7 +21,7 @@ export async function checkBudget(
       today: sql<number>`coalesce(sum(${schema.llmCalls.costUsd}) filter (where ${schema.llmCalls.createdAt} >= ${dayStart.toISOString()}), 0)::float8`,
     })
     .from(schema.llmCalls)
-    .where(gte(schema.llmCalls.createdAt, monthStart));
+    .where(and(gte(schema.llmCalls.createdAt, monthStart), eq(schema.llmCalls.billing, "api")));
   return budgetDecision({ month: row.month, today: row.today, worstUsd, capUsd, now });
 }
 

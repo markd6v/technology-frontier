@@ -1,0 +1,1 @@
+ALTER TABLE "llm_calls" ADD COLUMN "billing" text DEFAULT 'api' NOT NULL;

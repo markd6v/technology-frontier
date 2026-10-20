@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema, type Database } from "@/lib/db";
 import { checkBudget, type BudgetCheck } from "@/lib/llm/budget";
+import { claudeCodeClient } from "@/lib/llm/claude-code";
 import { anthropicClient, costUsd, type LlmClient, type LlmRequest, type LlmResponse } from "@/lib/llm/client";
 import * as prompt from "@/lib/llm/prompts/assess.v1";
 import { registry, type ScoreWeights } from "@/lib/registry";
@@ -118,8 +119,12 @@ export function toAssessment(
   };
 }
 
+/** "api" calls are billed and count toward the cap; "subscription" calls run through the local Claude Code CLI. */
+export type Billing = "api" | "subscription";
+
 export type CallRecord = {
   status: "ok" | "failed";
+  billing: Billing;
   model: string;
   usage: LlmResponse["usage"];
   costUsd: number;
@@ -129,6 +134,7 @@ export type CallRecord = {
 
 export type BatchDeps = {
   llm: LlmClient;
+  billing: Billing;
   checkBudget: (worstUsd: number) => Promise<BudgetCheck>;
   recordCall: (call: CallRecord) => Promise<number | null>;
   write: (rows: AssessmentRow[]) => Promise<void>;
@@ -138,7 +144,10 @@ export type AssessStats = {
   candidates: number;
   assessed: number;
   calls: number;
+  /** Billed cost; 0 for subscription calls. */
   costUsd: number;
+  /** What the same calls would cost on the API (the CLI's own figure for subscription calls). */
+  apiEquivalentUsd: number;
   failedCalls: number;
   unknownIds: number;
   /** Results that didn't match the item schema (e.g. a score of 6); those items are retried next run. */
@@ -167,6 +176,7 @@ export async function processBatches(
     assessed: 0,
     calls: 0,
     costUsd: 0,
+    apiEquivalentUsd: 0,
     failedCalls: 0,
     unknownIds: 0,
     invalid: 0,
@@ -205,6 +215,7 @@ export async function processBatches(
       stats.errors.push(error);
       await deps.recordCall({
         status: "failed",
+        billing: deps.billing,
         model: cfg.model,
         usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         costUsd: 0,
@@ -214,13 +225,16 @@ export async function processBatches(
       continue;
     }
 
-    const cost = costUsd(res.usage, config.llm.prices[res.model] ?? price);
+    const listCost = costUsd(res.usage, config.llm.prices[res.model] ?? price);
+    const cost = deps.billing === "api" ? listCost : 0;
     stats.calls++;
     stats.costUsd += cost;
+    stats.apiEquivalentUsd += "apiEquivalentUsd" in res ? Number(res.apiEquivalentUsd) : listCost;
     const byId = new Map(batch.map((i) => [i.id, i]));
     const interpreted = interpretResponse(res, new Set(byId.keys()));
     const callId = await deps.recordCall({
       status: interpreted.ok ? "ok" : "failed",
+      billing: deps.billing,
       model: res.model,
       usage: res.usage,
       costUsd: cost,
@@ -242,6 +256,7 @@ export async function processBatches(
     stats.rows.push(...rows);
   }
   stats.costUsd = Math.round(stats.costUsd * 1e6) / 1e6;
+  stats.apiEquivalentUsd = Math.round(stats.apiEquivalentUsd * 1e6) / 1e6;
   return stats;
 }
 
@@ -262,8 +277,20 @@ export type AssessOptions = {
 /** Assesses unassessed items, newest first (ARCHITECTURE §7.2). */
 export async function assessItems(opts: AssessOptions = {}): Promise<Omit<AssessStats, "rows"> & { rows?: AssessmentRow[] }> {
   const { limit = 200, retag = false, dryRun = false, database = db(), now = new Date() } = opts;
-  if (!opts.llm && !process.env.ANTHROPIC_API_KEY) {
-    return { candidates: 0, assessed: 0, calls: 0, costUsd: 0, failedCalls: 0, unknownIds: 0, invalid: 0, errors: [], stoppedBy: "ANTHROPIC_API_KEY is not set" };
+  const provider = opts.llm ? { llm: opts.llm, billing: "api" as const } : defaultProvider();
+  if (!provider) {
+    return {
+      candidates: 0,
+      assessed: 0,
+      calls: 0,
+      costUsd: 0,
+      apiEquivalentUsd: 0,
+      failedCalls: 0,
+      unknownIds: 0,
+      invalid: 0,
+      errors: [],
+      stoppedBy: "no LLM configured (set ANTHROPIC_API_KEY, or ASSESS_PROVIDER=claude-code locally)",
+    };
   }
   const { config } = registry();
   const { items, itemAssessments } = schema;
@@ -298,13 +325,18 @@ export async function assessItems(opts: AssessOptions = {}): Promise<Omit<Assess
   const stats = await processBatches(
     batches,
     {
-      llm: opts.llm ?? anthropicClient(),
-      checkBudget: (worstUsd) => checkBudget(database, { worstUsd, capUsd: config.llm.monthlyCapUsd }),
+      ...provider,
+      // Subscription calls aren't billed, so only API calls count toward the cap.
+      checkBudget: async (worstUsd) =>
+        provider.billing === "subscription"
+          ? { ok: true }
+          : checkBudget(database, { worstUsd, capUsd: config.llm.monthlyCapUsd }),
       recordCall: async (c) => {
         const [row] = await database
           .insert(schema.llmCalls)
           .values({
             purpose: "assess",
+            billing: c.billing,
             model: c.model,
             promptVersion: PROMPT_VERSION,
             status: c.status,
@@ -325,6 +357,18 @@ export async function assessItems(opts: AssessOptions = {}): Promise<Omit<Assess
   );
   // Rows only matter for a dry run's printout; otherwise they'd bloat job_runs.stats.
   return dryRun ? stats : { ...stats, rows: undefined };
+}
+
+/**
+ * ASSESS_PROVIDER=claude-code (set only on the owner's machine) uses the local Claude Code CLI and
+ * its subscription; otherwise ANTHROPIC_API_KEY selects the API. Neither → assessment is skipped.
+ */
+function defaultProvider(): { llm: LlmClient; billing: Billing } | undefined {
+  if (process.env.ASSESS_PROVIDER === "claude-code") {
+    return { llm: claudeCodeClient({ bin: process.env.CLAUDE_BIN || "claude" }), billing: "subscription" };
+  }
+  if (process.env.ANTHROPIC_API_KEY) return { llm: anthropicClient(), billing: "api" };
+  return undefined;
 }
 
 async function writeAssessments(database: Database, rows: AssessmentRow[]) {

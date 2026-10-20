@@ -114,6 +114,8 @@ export const llmCalls = pgTable(
   {
     id: serial("id").primaryKey(),
     purpose: text("purpose").notNull(),
+    /** "api" (billed, counts toward the cap) or "subscription" (local Claude Code CLI). */
+    billing: text("billing").notNull().default("api"),
     model: text("model").notNull(),
     promptVersion: text("prompt_version").notNull(),
     status: text("status").notNull(),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { budgetDecision } from "@/lib/llm/budget";
+import { parseResult } from "@/lib/llm/claude-code";
 import { costUsd, type LlmClient, type LlmResponse } from "@/lib/llm/client";
 import * as prompt from "@/lib/llm/prompts/assess.v1";
 import {
@@ -187,7 +188,7 @@ describe("budget", () => {
 });
 
 describe("processBatches", () => {
-  function deps(llm: LlmClient, budgetOk = true) {
+  function deps(llm: LlmClient, budgetOk = true, billing: "api" | "subscription" = "api") {
     const calls: CallRecord[] = [];
     const written: AssessmentRow[] = [];
     return {
@@ -195,6 +196,7 @@ describe("processBatches", () => {
       written,
       deps: {
         llm,
+        billing,
         checkBudget: async () => (budgetOk ? { ok: true as const } : { ok: false as const, reason: "monthly cap" }),
         recordCall: async (c: CallRecord) => (calls.push(c), calls.length),
         write: async (rows: AssessmentRow[]) => void written.push(...rows),
@@ -243,10 +245,61 @@ describe("processBatches", () => {
     expect(d.written.map((r) => r.itemId)).toEqual([2]);
   });
 
+  it("bills nothing for subscription calls but reports the API-equivalent cost", async () => {
+    const sub: LlmClient = {
+      async complete(req) {
+        return { ...(await echo.complete(req)), apiEquivalentUsd: 0.05 } as LlmResponse;
+      },
+    };
+    const d = deps(sub, true, "subscription");
+    const stats = await processBatches([[candidate(1)], [candidate(2)]], d.deps);
+    expect(stats.costUsd).toBe(0);
+    expect(stats.apiEquivalentUsd).toBeCloseTo(0.1);
+    expect(d.calls.map((c) => [c.billing, c.costUsd])).toEqual([
+      ["subscription", 0],
+      ["subscription", 0],
+    ]);
+  });
+
   it("stops starting requests after the deadline", async () => {
     const d = deps(echo);
     const stats = await processBatches([[candidate(1)]], d.deps, { deadline: Date.now() - 1 });
     expect(stats.stoppedBy).toBe("time budget");
     expect(d.calls).toHaveLength(0);
+  });
+});
+
+describe("claude CLI result", () => {
+  const out = (o: Record<string, unknown>) =>
+    JSON.stringify({
+      type: "result",
+      subtype: "success",
+      is_error: false,
+      stop_reason: "tool_use",
+      total_cost_usd: 0.0143,
+      usage: { input_tokens: 2, output_tokens: 56, cache_read_input_tokens: 0, cache_creation_input_tokens: 1645 },
+      modelUsage: { "claude-opus-5-5": {} },
+      structured_output: { items: [] },
+      ...o,
+    });
+
+  it("maps a successful structured result", () => {
+    const r = parseResult(out({}), "claude-opus-5-5");
+    expect(r.stopReason).toBe("end_turn");
+    expect(r.text).toBe('{"items":[]}');
+    expect(r.model).toBe("claude-opus-5-5");
+    expect(r.usage).toEqual({ input: 2, output: 56, cacheRead: 0, cacheWrite: 1645 });
+    expect(r.apiEquivalentUsd).toBe(0.0143);
+  });
+
+  it("treats CLI errors as a failed stop reason", () => {
+    const r = parseResult(out({ subtype: "error_max_structured_output_retries", is_error: true, structured_output: undefined }), "m");
+    expect(r.stopReason).toBe("error_max_structured_output_retries");
+    expect(r.text).toBeNull();
+    expect(interpretResponse(r, new Set()).ok).toBe(false);
+  });
+
+  it("throws when the CLI printed no JSON", () => {
+    expect(() => parseResult("Not logged in", "m")).toThrow(/no JSON/);
   });
 });

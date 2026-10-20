@@ -51,7 +51,8 @@ function printAssess(stats: Awaited<ReturnType<typeof assessItems>>) {
     );
   }
   console.log(
-    `assessed ${stats.assessed} of ${stats.candidates} in ${stats.calls} calls, $${stats.costUsd.toFixed(4)}` +
+    `assessed ${stats.assessed} of ${stats.candidates} in ${stats.calls} calls, $${stats.costUsd.toFixed(4)} billed` +
+      (stats.apiEquivalentUsd !== stats.costUsd ? ` ($${stats.apiEquivalentUsd.toFixed(4)} at API prices)` : "") +
       (stats.failedCalls ? `, ${stats.failedCalls} failed` : "") +
       (stats.unknownIds ? `, ${stats.unknownIds} unknown ids dropped` : "") +
       (stats.invalid ? `, ${stats.invalid} invalid results` : "") +
