@@ -14,7 +14,11 @@ const GRID = "grid grid-cols-[5.5rem_repeat(3,minmax(0,1fr))] gap-x-3 sm:grid-co
 export default async function Home() {
   const { domains, sources } = registry();
   const automatic = sources.filter((s) => s.method !== "manual");
-  const [board, latest, health] = await Promise.all([getLayerBoard(DAYS), getFeed({}), getSourceHealth()]);
+  const [board, top, health] = await Promise.all([
+    getLayerBoard(DAYS),
+    getFeed({ sort: "top", days: DAYS }),
+    getSourceHealth(),
+  ]);
 
   const healthy = automatic.filter((s) => health[s.id]?.lastSuccessAt && !health[s.id]?.lastError).length;
   const lastSuccess = Object.values(health)
@@ -85,9 +89,9 @@ export default async function Home() {
         })}
       </div>
 
-      <Section title="Latest" action={<MoreLink href="/feed">All items</MoreLink>}>
-        {latest.items.length ? (
-          <ItemList items={latest.items.slice(0, 10)} />
+      <Section title="Top this week" action={<MoreLink href={`/feed?sort=top&days=${DAYS}`}>More</MoreLink>}>
+        {top.items.length ? (
+          <ItemList items={top.items.slice(0, 10)} flat />
         ) : (
           <Empty>No items yet. Run `npm run job ingest`.</Empty>
         )}

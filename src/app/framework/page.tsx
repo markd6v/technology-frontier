@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LAYER_LABEL, LAYER_QUESTION, PageHeader, Rows, Section } from "@/components/ui";
-import { LAYERS, type Layer } from "@/lib/registry";
+import { LAYERS, registry, type Layer, type ScoreWeights } from "@/lib/registry";
 
 export const metadata: Metadata = { title: "Framework" };
 
@@ -19,15 +19,16 @@ const EVIDENCE = [
   { stage: "Release", shows: "It works well enough for people outside the lab to use." },
 ];
 
-const SCORING = [
-  { dim: "Novelty", q: "Is this genuinely new, or an incremental step on known work?", w: 25 },
-  { dim: "Magnitude", q: "How large is the improvement over the previous best?", w: 25 },
-  { dim: "Evidence", q: "How reproducible and independently verified is it?", w: 25 },
-  { dim: "Breadth", q: "How many fields or problems does it affect?", w: 15 },
-  { dim: "Maturity", q: "How close is it to working outside the lab?", w: 10 },
+const SCORING: { dim: string; key: keyof ScoreWeights; q: string }[] = [
+  { dim: "Novelty", key: "novelty", q: "Is this genuinely new, or an incremental step on known work?" },
+  { dim: "Magnitude", key: "magnitude", q: "How large is the improvement over the previous best?" },
+  { dim: "Evidence", key: "evidence", q: "How reproducible and independently verified is it?" },
+  { dim: "Breadth", key: "breadth", q: "How many fields or problems does it affect?" },
+  { dim: "Maturity", key: "maturity", q: "How close is it to working outside the lab?" },
 ];
 
 export default function FrameworkPage() {
+  const { scoreWeights, rank } = registry().config;
   return (
     <>
       <PageHeader title="How to read the frontier">
@@ -88,7 +89,7 @@ export default function FrameworkPage() {
         </p>
       </Section>
 
-      <Section title="Ranking developments">
+      <Section title="Scores and ranking" id="scores">
         <Rows>
           {SCORING.map((s) => (
             <div key={s.dim} className="grid grid-cols-[1fr_3rem] gap-3 py-2.5">
@@ -96,14 +97,27 @@ export default function FrameworkPage() {
                 <div>{s.dim}</div>
                 <div className="text-sm text-muted">{s.q}</div>
               </div>
-              <span className="text-right tabular-nums text-faint">{s.w}%</span>
+              <span className="text-right tabular-nums text-faint">{Math.round(scoreWeights[s.key] * 100)}%</span>
             </div>
           ))}
         </Rows>
-        <p className="mt-3 text-muted">
-          Each dimension is scored 1–5, giving a score out of 100. The weights are a starting hypothesis, not a
-          validated model. Scoring arrives in Phase 2.
-        </p>
+        <div className="mt-3 space-y-3 text-muted">
+          <p>
+            Claude reads each new item once (title plus abstract or excerpt) and scores each dimension 1–5. The
+            weighted sum gives the quality score out of 100 shown next to each item. With only a title to go on, scores
+            stay near the middle. The weights are a starting hypothesis, not a validated model.
+          </p>
+          <p>
+            &ldquo;Top&rdquo; lists sort by rank: quality, plus {rank.perExtraSource} for each further source that
+            reported the item (up to {rank.maxSourceBonus}), up to {rank.maxUpvoteBonus} for Hugging Face upvotes, and
+            a small bonus or penalty for the source&apos;s priority. Items that are company news or otherwise off-topic
+            lose {Math.abs(rank.notRelevant)} and are shown dimmed. Items not yet assessed rank at {rank.unassessed}.
+          </p>
+          <p>
+            The same pass tags each item with topics from a fixed list and can move it to the domains its content is
+            about, so a quantum paper from an AI lab is filed under quantum.
+          </p>
+        </div>
       </Section>
 
       <Section title="Finding what nobody is discussing yet">

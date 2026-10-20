@@ -52,9 +52,19 @@ export function PageHeader({ title, kicker, children }: { title: string; kicker?
   );
 }
 
-export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+export function Section({
+  title,
+  action,
+  id,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  id?: string;
+  children: ReactNode;
+}) {
   return (
-    <section className="mt-12 first:mt-0">
+    <section id={id} className="mt-12 scroll-mt-6 first:mt-0">
       <div className="mb-3 flex items-baseline justify-between gap-4">
         <h2 className="font-serif text-xl font-semibold tracking-tight">{title}</h2>
         {action && <div className="shrink-0 text-sm">{action}</div>}

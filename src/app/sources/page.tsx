@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ExternalLink, PageHeader, Rows, Section } from "@/components/ui";
 import { hostOf, timeAgo } from "@/lib/format";
 import { SourceStatus } from "@/components/source-status";
-import { getSourceHealth } from "@/lib/queries";
+import { getAssessStatus, getSourceHealth, getSourceQuality } from "@/lib/queries";
 import { registry } from "@/lib/registry";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +20,15 @@ const METHOD_LABEL: Record<string, string> = {
   manual: "Manual",
 };
 
+const QUALITY_DAYS = 30;
+
 export default async function SourcesPage() {
   const { sources, domains, reference } = registry();
-  const health = await getSourceHealth();
+  const [health, quality, assess] = await Promise.all([
+    getSourceHealth(),
+    getSourceQuality(QUALITY_DAYS),
+    getAssessStatus(),
+  ]);
   const domainName = (slug: string) => domains.find((d) => d.slug === slug)?.short ?? slug;
   const automatic = sources.filter((s) => s.method !== "manual");
   const manual = sources.filter((s) => s.method === "manual");
@@ -54,6 +60,7 @@ export default async function SourcesPage() {
         <Rows>
           {automatic.map((s) => {
             const h = health[s.id];
+            const q = quality[s.id];
             return (
               <div key={s.id} className="py-3">
                 <div className="flex items-baseline justify-between gap-4">
@@ -70,11 +77,42 @@ export default async function SourcesPage() {
                 <p className="text-sm text-faint">
                   {s.domains.map(domainName).join(", ")} · {s.layer} · {METHOD_LABEL[s.method]}, {s.frequency} · last
                   success {timeAgo(h?.lastSuccessAt)}
+                  {q && (
+                    <span title={`${q.assessed} items assessed, last ${QUALITY_DAYS} days`}>
+                      {" "}
+                      · quality {q.avgQuality ?? "–"} · {Math.round((q.relevantShare ?? 0) * 100)}% on topic
+                    </span>
+                  )}
                 </p>
               </div>
             );
           })}
         </Rows>
+      </Section>
+
+      <Section title="Assessment">
+        <p className="text-muted">
+          Each new item is read once by Claude, which picks its domains and topics and scores it (
+          <Link href="/framework#scores" className="text-accent hover:underline">
+            how
+          </Link>
+          ). Quality and on-topic share above cover the last {QUALITY_DAYS} days.{" "}
+          {assess.unassessed > 0
+            ? `${assess.unassessed} items are waiting to be assessed.`
+            : "Every item has been assessed."}
+        </p>
+        {assess.proposed.length > 0 && (
+          <p className="mt-3 text-sm text-faint">
+            Topics Claude asked for that the list lacks:{" "}
+            {assess.proposed.map((p, i) => (
+              <span key={p.topic}>
+                {i > 0 && ", "}
+                <span className="text-muted">{p.topic}</span> {p.n}
+              </span>
+            ))}
+            . Add the useful ones to <code>content/topics.yaml</code>.
+          </p>
+        )}
       </Section>
 
       <Section title={`Manual check · ${manual.length}`}>

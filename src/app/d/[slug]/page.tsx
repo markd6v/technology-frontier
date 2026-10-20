@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 import { ItemList } from "@/components/item-list";
 import { Empty, ExternalLink, MoreLink, PageHeader, Rows, Section, TIER_LABEL } from "@/components/ui";
 import { hostOf } from "@/lib/format";
-import { getFeed } from "@/lib/queries";
+import { getFeed, getTagCounts } from "@/lib/queries";
 import { getDomain, registry } from "@/lib/registry";
 
 export const dynamic = "force-dynamic";
+
+const TOP_DAYS = 30;
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -37,10 +39,15 @@ export default async function DomainPage({ params }: Params) {
   const domain = getDomain(slug);
   if (!domain) notFound();
 
-  const { sources, reference } = registry();
+  const { sources, reference, topics } = registry();
   const tracked = sources.filter((s) => s.domains.includes(slug));
   const crossings = reference.crossDomain.filter((c) => c.domains.includes(slug));
-  const { items, total } = await getFeed({ domain: slug });
+  const [{ items, total }, top, tagCounts] = await Promise.all([
+    getFeed({ domain: slug }),
+    getFeed({ domain: slug, sort: "top", days: TOP_DAYS }),
+    getTagCounts(TOP_DAYS, slug),
+  ]);
+  const topicName = (t: string) => topics.find((x) => x.slug === t)?.name ?? t;
 
   return (
     <>
@@ -59,12 +66,33 @@ export default async function DomainPage({ params }: Params) {
         <p className="mt-2 text-sm text-faint">{domain.subfields.join(" · ")}</p>
       </PageHeader>
 
+      {tagCounts.length > 0 && (
+        <p className="-mt-4 mb-8 flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label={`Topics, last ${TOP_DAYS} days`}>
+          {tagCounts.slice(0, 12).map((t) => (
+            <Link key={t.tag} href={`/feed?domain=${slug}&tag=${t.tag}`} className="text-muted hover:text-ink">
+              {topicName(t.tag)} <span className="tabular-nums text-faint">{t.n}</span>
+            </Link>
+          ))}
+        </p>
+      )}
+
+      {top.items.length > 0 && (
+        <Section
+          title="Top this month"
+          action={
+            top.total > 8 ? <MoreLink href={`/feed?domain=${slug}&sort=top&days=${TOP_DAYS}`}>More</MoreLink> : null
+          }
+        >
+          <ItemList items={top.items.slice(0, 8)} hideDomains flat />
+        </Section>
+      )}
+
       <Section
         title="Latest"
-        action={total > 15 ? <MoreLink href={`/feed?domain=${slug}`}>All {total.toLocaleString()} items</MoreLink> : null}
+        action={total > 10 ? <MoreLink href={`/feed?domain=${slug}`}>All {total.toLocaleString()} items</MoreLink> : null}
       >
         {items.length ? (
-          <ItemList items={items.slice(0, 15)} hideDomains />
+          <ItemList items={items.slice(0, 10)} hideDomains />
         ) : (
           <Empty>
             {tracked.some((s) => s.method !== "manual")
