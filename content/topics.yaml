@@ -1,0 +1,108 @@
+# Topic tags, per domain. The assess step (ARCHITECTURE §7.2) tags each item with
+# topics from this list only; a topic it would have liked but isn't here is stored as
+# a proposal and listed on /sources, so the list grows by editing this file.
+# Slugs are unique across all domains. Keep each domain to at most 12 topics.
+
+ai:
+  - { slug: foundation-models, name: Foundation models, about: "Pretraining, architectures and scaling of large models" }
+  - { slug: reasoning, name: Reasoning, about: "Math, planning, test-time compute, chain of thought" }
+  - { slug: post-training, name: Post-training and RL, about: "RLHF, RL from verifiable rewards, fine-tuning, distillation" }
+  - { slug: agents, name: Agents, about: "Tool use, computer use, long-horizon autonomous tasks, coding agents" }
+  - { slug: multimodal, name: Multimodal, about: "Vision, audio, speech and video understanding or generation" }
+  - { slug: world-models, name: World models, about: "Learned simulators, video world models, model-based planning" }
+  - { slug: interpretability, name: Interpretability, about: "Understanding model internals, features, circuits" }
+  - { slug: ai-safety, name: Safety and alignment, about: "Alignment, misuse, dangerous capabilities, model behaviour" }
+  - { slug: inference-efficiency, name: Efficiency, about: "Faster or cheaper training and inference: quantization, sparsity, speculative decoding, small models" }
+  - { slug: evaluation, name: Evaluation, about: "Benchmarks, evals, measuring model capabilities" }
+  - { slug: ai-for-science, name: AI for science, about: "Models applied to discovery in biology, chemistry, physics, math" }
+  - { slug: retrieval-memory, name: Retrieval and memory, about: "RAG, long context, memory, search" }
+
+compute:
+  - { slug: gpus, name: GPUs, about: "GPU hardware and GPU programming" }
+  - { slug: accelerators, name: Accelerators, about: "TPUs and other AI or special-purpose chips at system level" }
+  - { slug: cloud, name: Cloud, about: "Cloud platforms and datacenter infrastructure" }
+  - { slug: distributed-computing, name: Distributed computing, about: "Distributed training and serving, clusters, scheduling" }
+  - { slug: networking, name: Networking, about: "Datacenter and internet networking" }
+
+software:
+  - { slug: databases, name: Databases, about: "Storage engines, query processing, data systems" }
+  - { slug: programming-languages, name: Programming languages, about: "Languages, compilers, type systems" }
+  - { slug: developer-tools, name: Developer tools, about: "Editors, build tools, testing, AI coding tools" }
+  - { slug: operating-systems, name: Operating systems, about: "Kernels, Linux, virtualization, filesystems" }
+
+robotics:
+  - { slug: humanoids, name: Humanoids, about: "Humanoid and legged robots" }
+  - { slug: industrial-robots, name: Industrial robots, about: "Manufacturing and logistics robots" }
+  - { slug: autonomous-systems, name: Autonomous systems, about: "Self-driving, drones, navigation" }
+  - { slug: embodied-ai, name: Embodied AI, about: "Robot learning, vision-language-action models, manipulation" }
+
+biotech:
+  - { slug: gene-editing, name: Gene editing, about: "CRISPR, base and prime editing, gene therapy" }
+  - { slug: synthetic-biology, name: Synthetic biology, about: "Engineered cells, organisms and genetic circuits" }
+  - { slug: protein-engineering, name: Protein engineering, about: "Protein design and structure prediction" }
+  - { slug: drug-discovery, name: Drug discovery, about: "New therapeutics and AI-driven discovery" }
+  - { slug: genomics, name: Genomics, about: "Sequencing, genome interpretation, single-cell methods" }
+  - { slug: cell-therapy, name: Cell and tissue engineering, about: "Cell therapies, organoids, regenerative medicine" }
+  - { slug: medical-devices, name: Medical devices, about: "Diagnostics, implants, biomedical engineering" }
+
+semiconductors:
+  - { slug: chip-architectures, name: Chip architectures, about: "Processor and memory design" }
+  - { slug: fabrication, name: Fabrication, about: "Process nodes, lithography, transistors, new device materials" }
+  - { slug: packaging, name: Packaging, about: "Chiplets, 3D integration, advanced packaging" }
+  - { slug: photonics, name: Photonics, about: "Silicon photonics and optical interconnects" }
+  - { slug: memory-devices, name: Memory devices, about: "DRAM, flash, emerging memory, capacitors" }
+
+energy-generation:
+  - { slug: fusion, name: Fusion, about: "Fusion energy" }
+  - { slug: fission, name: Fission, about: "Fission reactors, SMRs, fuel" }
+  - { slug: solar, name: Solar, about: "Photovoltaics, perovskites" }
+  - { slug: geothermal, name: Geothermal, about: "Geothermal energy" }
+  - { slug: clean-fuels, name: Fuels and carbon capture, about: "Hydrogen, e-fuels, catalysis, carbon capture" }
+
+energy-storage:
+  - { slug: batteries, name: Batteries, about: "Battery chemistry and cells" }
+  - { slug: grid-storage, name: Grid storage, about: "Grid-scale storage and integration" }
+  - { slug: power-electronics, name: Power electronics, about: "Converters, wide-bandgap devices" }
+
+materials:
+  - { slug: nanomaterials, name: Nanomaterials, about: "Nanostructures, 2D materials" }
+  - { slug: superconductors, name: Superconductors, about: "Superconducting materials" }
+  - { slug: metamaterials, name: Metamaterials, about: "Engineered optical, acoustic or mechanical properties" }
+  - { slug: additive-manufacturing, name: Additive manufacturing, about: "3D printing and new manufacturing processes" }
+  - { slug: materials-discovery, name: Materials discovery, about: "Computational and AI-driven materials search" }
+
+quantum:
+  - { slug: quantum-computing, name: Quantum computing, about: "Qubits, error correction, quantum algorithms" }
+  - { slug: quantum-communication, name: Quantum communication, about: "Quantum networks, QKD" }
+  - { slug: quantum-sensing, name: Quantum sensing, about: "Quantum sensors and metrology" }
+
+space:
+  - { slug: launch, name: Launch, about: "Launch vehicles" }
+  - { slug: satellites, name: Satellites, about: "Satellite platforms and constellations" }
+  - { slug: earth-observation, name: Earth observation, about: "Remote sensing, weather and climate from space" }
+  - { slug: in-space-manufacturing, name: In-space manufacturing, about: "Manufacturing and resources in orbit" }
+
+neurotech:
+  - { slug: brain-computer-interfaces, name: Brain-computer interfaces, about: "Implanted and non-invasive BCIs" }
+  - { slug: neural-stimulation, name: Neural stimulation, about: "Neuromodulation and stimulation devices" }
+  - { slug: brain-mapping, name: Brain mapping, about: "Connectomics and neural recording" }
+
+security:
+  - { slug: post-quantum-crypto, name: Post-quantum cryptography, about: "PQC algorithms and migration" }
+  - { slug: privacy, name: Privacy, about: "Privacy-preserving computation and data protection" }
+  - { slug: identity, name: Identity, about: "Authentication and identity systems" }
+  - { slug: ai-security, name: AI security, about: "Attacks on and with AI systems, prompt injection" }
+  - { slug: vulnerability-research, name: Vulnerability research, about: "Exploits, bug classes, fuzzing, memory safety" }
+
+fintech:
+  - { slug: blockchain, name: Blockchain, about: "Consensus, scaling, smart contracts" }
+  - { slug: stablecoins, name: Stablecoins, about: "Stablecoins and digital currencies" }
+  - { slug: tokenization, name: Tokenization, about: "Tokenized assets" }
+  - { slug: payment-systems, name: Payment systems, about: "Payment rails and settlement" }
+
+comms:
+  - { slug: 6g, name: 6G, about: "Next-generation wireless" }
+  - { slug: optical-networks, name: Optical networks, about: "Fiber and optical communication" }
+  - { slug: satellite-connectivity, name: Satellite connectivity, about: "Satellite internet" }
+  - { slug: lidar, name: LiDAR, about: "LiDAR systems" }
+  - { slug: sensors, name: Sensors, about: "Sensing hardware" }

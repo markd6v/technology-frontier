@@ -94,7 +94,51 @@ export const referenceSchema = z.object({
   interpreters: z.array(person.extend({ why: z.string() })),
 });
 
+export const topicSchema = z.object({
+  slug: z.string().regex(/^[a-z0-9-]+$/),
+  name: z.string(),
+  about: z.string(),
+});
+
+/** content/topics.yaml: domain slug → its topics. */
+export const topicsSchema = z.record(z.string(), z.array(topicSchema).min(1).max(12));
+
+const usd = z.number().nonnegative();
+const scoreWeightsSchema = z.object({
+  novelty: z.number().min(0),
+  magnitude: z.number().min(0),
+  evidence: z.number().min(0),
+  breadth: z.number().min(0),
+  maturity: z.number().min(0),
+});
+
+export const configSchema = z.object({
+  scoreWeights: scoreWeightsSchema,
+  rank: z.object({
+    unassessed: z.number(),
+    perExtraSource: z.number(),
+    maxSourceBonus: z.number(),
+    maxUpvoteBonus: z.number(),
+    upvotesForMax: z.number().positive(),
+    sourcePriority: z.record(z.string(), z.number()),
+    notRelevant: z.number(),
+  }),
+  llm: z.object({
+    monthlyCapUsd: usd,
+    assess: z.object({
+      model: z.string(),
+      effort: z.enum(["low", "medium", "high", "xhigh", "max"]),
+      batchSize: z.number().int().min(1).max(50),
+      maxTokens: z.number().int().positive(),
+    }),
+    prices: z.record(z.string(), z.object({ input: usd, output: usd, cacheRead: usd, cacheWrite: usd })),
+  }),
+});
+
 export type Domain = z.infer<typeof domainSchema>;
+export type Topic = z.infer<typeof topicSchema> & { domain: string };
+export type Config = z.infer<typeof configSchema>;
+export type ScoreWeights = z.infer<typeof scoreWeightsSchema>;
 export type Source = z.infer<typeof sourceSchema>;
 export type SourceFilter = z.infer<typeof sourceFilterSchema>;
 export type Reference = z.infer<typeof referenceSchema>;

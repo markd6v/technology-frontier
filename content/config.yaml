@@ -1,0 +1,34 @@
+# Tunables for scoring, ranking and the LLM step. Code reads these; changing them needs no code change.
+
+# REQUIREMENTS §7: quality = Σ weight × (score − 1) / 4 × 100. Weights must sum to 1.
+scoreWeights:
+  novelty: 0.25
+  magnitude: 0.25
+  evidence: 0.25
+  breadth: 0.15
+  maturity: 0.10
+
+# Rank = quality (or `unassessed` before the item is scored) plus these adjustments.
+rank:
+  unassessed: 40
+  perExtraSource: 8
+  maxSourceBonus: 16
+  # Up to this many points from HF upvotes, on a log scale that reaches the max at `upvotesForMax`.
+  maxUpvoteBonus: 10
+  upvotesForMax: 200
+  sourcePriority: { "1": 5, "2": 0, "3": -5 }
+  notRelevant: -40
+
+llm:
+  # Hard monthly cap in USD (REQUIREMENTS §4 Phase 1).
+  monthlyCapUsd: 20
+  assess:
+    model: claude-opus-5-5
+    effort: low
+    batchSize: 20
+    maxTokens: 16000
+  # USD per million tokens, by model id.
+  prices:
+    claude-opus-5-5: { input: 4.0, output: 20.0, cacheRead: 0.20, cacheWrite: 5.0 }
+    claude-sonnet-5-5: { input: 2.0, output: 10.0, cacheRead: 0.20, cacheWrite: 2.5 }
+    claude-haiku-5-5: { input: 0.10, output: 0.50, cacheRead: 0.01, cacheWrite: 0.125 }
