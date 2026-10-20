@@ -158,6 +158,7 @@ async function upsertItem(tx: Database, source: Source, item: NormalizedItem, no
         excerpt: item.excerpt ?? null,
         abstract: item.abstract ?? null,
         domains,
+        sourceDomains: domains,
         layer: source.layer,
         kind: source.kind,
         tier: tierFor(domains),

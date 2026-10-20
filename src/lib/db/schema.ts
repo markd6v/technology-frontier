@@ -8,9 +8,12 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
+  real,
   serial,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -72,11 +75,20 @@ export const items = pgTable(
     sortAt: tstz("sort_at").notNull(),
     excerpt: text("excerpt"),
     abstract: text("abstract"),
+    /** The assessment's domains once assessed; the source's before that. */
     domains: text("domains").array().notNull(),
+    /** What the first source (or connector) said, kept so an assessment can be undone. */
+    sourceDomains: text("source_domains").array().notNull(),
     layer: text("layer").notNull(),
     kind: text("kind").notNull(),
     tier: text("tier").notNull(),
     status: text("status").notNull().default("new"),
+    /** Topic slugs from content/topics.yaml, copied from item_assessments. */
+    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+    /** 0–100 from the R§7 scores; null until assessed. */
+    quality: smallint("quality"),
+    /** Quality plus corroboration and source signals (pipeline/rank.ts); what "Top" sorts by. */
+    rank: real("rank"),
     search: tsvector("search").generatedAlwaysAs(
       (): SQL =>
         sql`to_tsvector('english', coalesce(${items.title}, '') || ' ' || coalesce(${items.excerpt}, '') || ' ' || coalesce(${items.abstract}, ''))`,
@@ -91,7 +103,59 @@ export const items = pgTable(
     index("items_domains_idx").using("gin", t.domains),
     index("items_search_idx").using("gin", t.search),
     index("items_first_source_idx").on(t.firstSourceId, t.sortAt.desc()),
+    index("items_tags_idx").using("gin", t.tags),
+    index("items_rank_idx").on(t.rank.desc()),
   ],
+);
+
+/** One Claude API call, with what it cost. Sums of cost_usd enforce the monthly cap. */
+export const llmCalls = pgTable(
+  "llm_calls",
+  {
+    id: serial("id").primaryKey(),
+    purpose: text("purpose").notNull(),
+    model: text("model").notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    status: text("status").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+    cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
+    costUsd: numeric("cost_usd", { precision: 10, scale: 6, mode: "number" }).notNull().default(0),
+    itemCount: integer("item_count").notNull().default(0),
+    error: text("error"),
+    createdAt: tstz("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("llm_calls_created_idx").on(t.createdAt.desc())],
+);
+
+/** The LLM's reading of one item (ARCHITECTURE §7.2). Re-written when the prompt version changes. */
+export const itemAssessments = pgTable(
+  "item_assessments",
+  {
+    itemId: bigint("item_id", { mode: "number" })
+      .primaryKey()
+      .references(() => items.id, { onDelete: "cascade" }),
+    promptVersion: text("prompt_version").notNull(),
+    model: text("model").notNull(),
+    assessedAt: tstz("assessed_at").notNull().defaultNow(),
+    relevant: boolean("relevant").notNull(),
+    domains: text("domains").array().notNull(),
+    topics: text("topics").array().notNull(),
+    proposedTopics: text("proposed_topics").array().notNull(),
+    contribution: text("contribution").notNull(),
+    artifacts: text("artifacts").array().notNull(),
+    novelty: smallint("novelty").notNull(),
+    magnitude: smallint("magnitude").notNull(),
+    evidence: smallint("evidence").notNull(),
+    breadth: smallint("breadth").notNull(),
+    maturity: smallint("maturity").notNull(),
+    quality: smallint("quality").notNull(),
+    takeaway: text("takeaway").notNull(),
+    rationale: text("rationale").notNull(),
+    llmCallId: integer("llm_call_id").references(() => llmCalls.id),
+  },
+  (t) => [index("item_assessments_version_idx").on(t.promptVersion)],
 );
 
 /** Every time a source reports an item: same paper via arXiv + HF + HN = 1 item, 3 mentions. */
@@ -132,3 +196,4 @@ export const jobRuns = pgTable(
 
 export type ItemRow = typeof items.$inferSelect;
 export type SourceStateRow = typeof sourceState.$inferSelect;
+export type ItemAssessmentRow = typeof itemAssessments.$inferSelect;
