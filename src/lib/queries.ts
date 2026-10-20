@@ -3,14 +3,18 @@ import { unstable_cache } from "next/cache";
 import { db, schema } from "@/lib/db";
 
 const REVALIDATE = 300;
-const { items, itemMentions, sourceState } = schema;
+const { items, itemMentions, itemAssessments, sourceState } = schema;
 
 export type FeedFilters = {
   domain?: string;
   layer?: string;
   kind?: string;
   source?: string;
+  tag?: string;
   q?: string;
+  /** "top" sorts by rank within the last `days` (all time if unset). */
+  sort?: "newest" | "top";
+  days?: number;
   page?: number;
 };
 
@@ -25,6 +29,13 @@ export type FeedItem = {
   layer: string;
   kind: string;
   firstSourceId: string;
+  tags: string[];
+  quality: number | null;
+  rank: number | null;
+  /** LLM-written; render as plain text only. */
+  takeaway: string | null;
+  relevant: boolean | null;
+  contribution: string | null;
   mentions: { sourceId: string; signals: Record<string, number> }[];
 };
 
@@ -35,6 +46,8 @@ function where(f: FeedFilters): SQL | undefined {
   if (f.domain) conds.push(arrayOverlaps(items.domains, [f.domain]));
   if (f.layer) conds.push(eq(items.layer, f.layer));
   if (f.kind) conds.push(eq(items.kind, f.kind));
+  if (f.tag) conds.push(arrayOverlaps(items.tags, [f.tag]));
+  if (f.sort === "top" && f.days) conds.push(gte(items.sortAt, new Date(Date.now() - f.days * 86_400_000)));
   if (f.source) {
     conds.push(
       sql`exists (select 1 from ${itemMentions} m where m.item_id = ${items.id} and m.source_id = ${f.source})`,
@@ -86,7 +99,17 @@ const feedColumns = {
   layer: items.layer,
   kind: items.kind,
   firstSourceId: items.firstSourceId,
+  tags: items.tags,
+  quality: items.quality,
+  rank: items.rank,
+  takeaway: itemAssessments.takeaway,
+  relevant: itemAssessments.relevant,
+  contribution: itemAssessments.contribution,
 };
+
+const withAssessment = sql`${itemAssessments.itemId} = ${items.id}`;
+const newestFirst = [desc(items.sortAt), desc(items.id)];
+const topFirst = [sql`${items.rank} desc nulls last`, ...newestFirst];
 
 export const getFeed = unstable_cache(
   async (f: FeedFilters): Promise<{ items: FeedItem[]; total: number }> => {
@@ -96,8 +119,9 @@ export const getFeed = unstable_cache(
       db()
         .select(feedColumns)
         .from(items)
+        .leftJoin(itemAssessments, withAssessment)
         .where(filter)
-        .orderBy(desc(items.sortAt), desc(items.id))
+        .orderBy(...(f.sort === "top" ? topFirst : newestFirst))
         .limit(PAGE_SIZE)
         .offset((page - 1) * PAGE_SIZE),
       db().select({ total: count() }).from(items).where(filter),
@@ -116,8 +140,9 @@ export const getLatestByDomain = unstable_cache(
         const rows = await db()
           .select(feedColumns)
           .from(items)
+          .leftJoin(itemAssessments, withAssessment)
           .where(arrayOverlaps(items.domains, [slug]))
-          .orderBy(desc(items.sortAt), desc(items.id))
+          .orderBy(...newestFirst)
           .limit(perDomain);
         out[slug] = await attachMentions(rows);
       }),
@@ -214,13 +239,13 @@ export const getLayerBoard = unstable_cache(
     const since = new Date(Date.now() - days * 86_400_000);
     const rows = await db().execute<{ domain: string; layer: string; n: number; top_title: string }>(sql`
       with recent as (
-        select unnest(i.domains) as domain, i.layer, i.title, i.sort_at,
+        select unnest(i.domains) as domain, i.layer, i.title, i.sort_at, i.rank,
                (select count(distinct m.source_id) from ${itemMentions} m where m.item_id = i.id) as srcs
         from ${items} i
         where i.sort_at >= ${since.toISOString()}
       )
       select domain, layer, count(*)::int as n,
-             (array_agg(title order by srcs desc, sort_at desc))[1] as top_title
+             (array_agg(title order by rank desc nulls last, srcs desc, sort_at desc))[1] as top_title
       from recent
       group by domain, layer`);
     const out: Record<string, Record<string, BoardCell>> = {};
@@ -228,5 +253,68 @@ export const getLayerBoard = unstable_cache(
     return out;
   },
   ["layer-board"],
+  { revalidate: REVALIDATE, tags: ["items"] },
+);
+
+/** Items per tag over the last `days`, most used first; optionally within one domain. */
+export const getTagCounts = unstable_cache(
+  async (days: number, domain?: string): Promise<{ tag: string; n: number }[]> => {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const conds = [gte(items.sortAt, since)];
+    if (domain) conds.push(arrayOverlaps(items.domains, [domain]));
+    const rows = await db()
+      .select({ tag: sql<string>`unnest(${items.tags})`, n: count() })
+      .from(items)
+      .where(and(...conds))
+      .groupBy(sql`1`)
+      .orderBy(sql`2 desc`, sql`1`);
+    return rows;
+  },
+  ["tag-counts"],
+  { revalidate: REVALIDATE, tags: ["items"] },
+);
+
+export type SourceQuality = { assessed: number; avgQuality: number | null; relevantShare: number | null };
+
+/** Per first source over the last `days`: how much of what it brings in is worth reading. */
+export const getSourceQuality = unstable_cache(
+  async (days: number): Promise<Record<string, SourceQuality>> => {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const rows = await db()
+      .select({
+        sourceId: items.firstSourceId,
+        assessed: sql<number>`count(${itemAssessments.itemId})::int`,
+        avgQuality: sql<number | null>`round(avg(${itemAssessments.quality}))::int`,
+        relevantShare: sql<number | null>`avg(case when ${itemAssessments.relevant} then 1.0 else 0.0 end)::float8`,
+      })
+      .from(items)
+      .innerJoin(itemAssessments, withAssessment)
+      .where(gte(items.sortAt, since))
+      .groupBy(items.firstSourceId);
+    return Object.fromEntries(rows.map(({ sourceId, ...q }) => [sourceId, q]));
+  },
+  ["source-quality"],
+  { revalidate: REVALIDATE, tags: ["items"] },
+);
+
+/** Assessment backlog and the topics the model asked for that content/topics.yaml lacks. */
+export const getAssessStatus = unstable_cache(
+  async () => {
+    const [[{ unassessed }], proposed] = await Promise.all([
+      db()
+        .select({ unassessed: count() })
+        .from(items)
+        .leftJoin(itemAssessments, withAssessment)
+        .where(sql`${itemAssessments.itemId} is null`),
+      db()
+        .select({ topic: sql<string>`unnest(${itemAssessments.proposedTopics})`, n: count() })
+        .from(itemAssessments)
+        .groupBy(sql`1`)
+        .orderBy(sql`2 desc`, sql`1`)
+        .limit(20),
+    ]);
+    return { unassessed, proposed };
+  },
+  ["assess-status"],
   { revalidate: REVALIDATE, tags: ["items"] },
 );
