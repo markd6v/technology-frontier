@@ -113,7 +113,7 @@ export async function pruneItems(database: Database = db()) {
   return { mentionsRemoved: mentions.count, itemsRemoved: orphans.count };
 }
 
-function tierFor(domains: string[]): Tier {
+export function tierFor(domains: string[]): Tier {
   const byslug = new Map(registry().domains.map((d) => [d.slug, d.tier]));
   const tiers = domains.map((d) => byslug.get(d) ?? "broad");
   return tiers.sort((a, b) => TIER_RANK[a] - TIER_RANK[b])[0] ?? "broad";

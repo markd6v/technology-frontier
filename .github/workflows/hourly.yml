@@ -1,6 +1,6 @@
-# Hourly ingestion trigger. Vercel Hobby cron can only run daily (ARCHITECTURE §1, §9).
+# Hourly trigger: ingest, assess, rank. Vercel Hobby cron can only run daily (ARCHITECTURE §1, §9).
 # Needs repo secrets: APP_URL (e.g. https://technology-frontier.vercel.app) and CRON_SECRET.
-name: hourly-ingest
+name: hourly
 
 on:
   schedule:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
-      - name: Trigger /api/jobs/ingest
+      - name: Trigger /api/jobs/hourly
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -26,4 +26,4 @@ jobs:
           if [ -z "$APP_URL" ]; then echo "APP_URL secret not set; skipping"; exit 0; fi
           curl --fail-with-body -sS -X POST --max-time 300 \
             -H "Authorization: Bearer $CRON_SECRET" \
-            "$APP_URL/api/jobs/ingest?force=$FORCE"
+            "$APP_URL/api/jobs/hourly?force=$FORCE"

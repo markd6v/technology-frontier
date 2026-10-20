@@ -1,10 +1,33 @@
 import { and, eq, gt } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
+import { assessItems } from "@/lib/pipeline/assess";
 import { pruneItems, runIngest, syncSources } from "@/lib/pipeline/ingest";
+import { rankRecent } from "@/lib/pipeline/rank";
+
+/** Vercel Hobby functions stop at 300 s; nothing new starts after this. */
+const HOURLY_BUDGET_MS = 240_000;
+/** An assess request can take a minute, so ingest leaves it this much of the budget. */
+const ASSESS_RESERVE_MS = 90_000;
+
+export type JobArgs = { sourceIds?: string[]; force?: boolean; limit?: number; retag?: boolean; dryRun?: boolean };
 
 export const JOBS = {
-  /** Hourly (GitHub Actions): fetch every source that is due. */
-  ingest: async (args: { sourceIds?: string[]; force?: boolean }) => runIngest(args),
+  /** Hourly (GitHub Actions): fetch due sources, assess what's new, re-rank. */
+  hourly: async (args: JobArgs) => {
+    const deadline = Date.now() + HOURLY_BUDGET_MS;
+    const ingest = await runIngest({ ...args, budgetMs: HOURLY_BUDGET_MS - ASSESS_RESERVE_MS });
+    const assess = await assessItems({ deadline: deadline - 60_000 });
+    const rank = await rankRecent();
+    return { ingest, assess, rank };
+  },
+  /** Fetch only (the daily Vercel safety net, and local runs). */
+  ingest: async (args: JobArgs) => runIngest(args),
+  /** Assess unassessed items; `retag` also redoes those from older prompt versions. */
+  assess: async (args: JobArgs) => {
+    const assess = await assessItems({ limit: args.limit, retag: args.retag, dryRun: args.dryRun });
+    return { assess, rank: args.dryRun ? undefined : await rankRecent() };
+  },
+  rank: async () => rankRecent(),
   /** Daily (Vercel Cron): registry sync, then drop items of removed sources. */
   maintenance: async () => ({ sources: await syncSources(), ...(await pruneItems()) }),
 } as const;
@@ -22,7 +45,7 @@ const LOCK_TTL_MS = 6 * 60_000;
  * Runs a job with a job_runs record. Skips if the same job is already running —
  * a row lock instead of advisory locks, because Neon's pooler doesn't keep sessions.
  */
-export async function runJob(name: JobName, trigger: string, args: Record<string, unknown> = {}) {
+export async function runJob(name: JobName, trigger: string, args: JobArgs = {}) {
   const database = db();
   const running = await database
     .select({ id: schema.jobRuns.id })
@@ -39,7 +62,7 @@ export async function runJob(name: JobName, trigger: string, args: Record<string
 
   const [run] = await database.insert(schema.jobRuns).values({ job: name, trigger }).returning();
   try {
-    const stats = await JOBS[name](args as never);
+    const stats = await JOBS[name](args);
     await database
       .update(schema.jobRuns)
       .set({ status: "ok", finishedAt: new Date(), stats: stats as Record<string, unknown> })

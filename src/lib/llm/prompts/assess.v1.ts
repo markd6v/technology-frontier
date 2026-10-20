@@ -33,34 +33,39 @@ export type AssessInput = {
 
 const score = z.number().int().min(1).max(5);
 
-/** Domains and topics are enums, so the model can only answer with known slugs. */
-export function outputSchema(domains: Domain[], topics: Topic[]) {
-  const domainSlug = z.enum(domains.map((d) => d.slug) as [string, ...string[]]);
-  const topicSlug = z.enum(topics.map((t) => t.slug) as [string, ...string[]]);
+function itemShape(domainSlug: z.ZodType<string>, topicSlug: z.ZodType<string>) {
   return z.object({
-    items: z.array(
-      z.object({
-        id: z.number().int(),
-        relevant: z.boolean(),
-        domains: z.array(domainSlug),
-        topics: z.array(topicSlug),
-        proposed_topics: z.array(z.string()),
-        contribution: z.enum(CONTRIBUTIONS),
-        artifacts: z.array(z.enum(ARTIFACTS)),
-        novelty: score,
-        magnitude: score,
-        evidence: score,
-        breadth: score,
-        maturity: score,
-        takeaway: z.string(),
-        rationale: z.string(),
-      }),
-    ),
+    id: z.number().int(),
+    relevant: z.boolean(),
+    domains: z.array(domainSlug),
+    topics: z.array(topicSlug),
+    proposed_topics: z.array(z.string()),
+    contribution: z.enum(CONTRIBUTIONS),
+    artifacts: z.array(z.enum(ARTIFACTS)),
+    novelty: score,
+    magnitude: score,
+    evidence: score,
+    breadth: score,
+    maturity: score,
+    takeaway: z.string(),
+    rationale: z.string(),
   });
 }
 
-export type AssessOutput = z.infer<ReturnType<typeof outputSchema>>;
-export type AssessResult = AssessOutput["items"][number];
+/**
+ * Sent to the API as the structured-output format. The SDK turns enums and ranges into
+ * description hints, so the API doesn't enforce them: `resultSchema` checks each item on receipt.
+ */
+export function outputSchema(domains: Domain[], topics: Topic[]) {
+  const domainSlug = z.enum(domains.map((d) => d.slug) as [string, ...string[]]);
+  const topicSlug = z.enum(topics.map((t) => t.slug) as [string, ...string[]]);
+  return z.object({ items: z.array(itemShape(domainSlug, topicSlug)) });
+}
+
+/** One item as received. Unknown domains and topics are sorted out later rather than failing the item. */
+export const resultSchema = itemShape(z.string(), z.string());
+
+export type AssessResult = z.infer<typeof resultSchema>;
 
 export function buildSystem(domains: Domain[], topics: Topic[]): string {
   const domainLines = domains
