@@ -1,6 +1,6 @@
 # Technology Frontier Radar — Architecture
 
-Status: draft v0.2 (2026-10-18). v0.2 drops the daily brief. This describes how [REQUIREMENTS.md](REQUIREMENTS.md) gets built. Section numbers like "R§4" point to the requirements doc.
+Status: draft v0.3 (2026-10-20). v0.3 replaces triage with one assessment pass and adds ranking (§7). v0.2 drops the daily brief. This describes how [REQUIREMENTS.md](REQUIREMENTS.md) gets built. Section numbers like "R§4" point to the requirements doc.
 
 ---
 
@@ -11,7 +11,7 @@ Status: draft v0.2 (2026-10-18). v0.2 drops the daily brief. This describes how 
 | Vercel Hobby cron: **at most once a day per job**, and it fires anywhere in the scheduled hour | Vercel docs (checked 2026-10-18) | Hourly ingestion can't run on Vercel Cron. A GitHub Actions schedule triggers it instead. Daily jobs are scheduled one hour before their deadline |
 | Vercel Hobby functions: **max 300 s** | Vercel docs | Every job is resumable and stops itself at a 240 s time budget |
 | Neon Free: **1 GB storage**, 100 CU-hours/month, scales to zero | Neon docs (checked 2026-10-18) | No full raw payloads are stored. Public pages are cached so visitors don't wake the DB |
-| **$20/month LLM cap** | R§4 Phase 1 | Rules filter first, then a cheap triage model, then batched extraction. A reserve-then-settle budget ledger enforces the cap |
+| **$20/month LLM cap** | R§4 Phase 1 | Source filters drop noise before storage; one assessment call per 20 items; extraction (later) only for top-ranked items. Every call is checked against the cap first (§8.2) |
 | **Public, read-only** site | R§2 | Pages are static/ISR. Owner controls hydrate client-side. Source text is shown as excerpts only. LLM output is treated as untrusted |
 | One developer, one user | R§2 | One Next.js app and one database. No queues, workers or microservices |
 
@@ -31,8 +31,8 @@ flowchart LR
   end
 
   subgraph Pipeline[src/lib/pipeline]
-    ING[ingest] --> PRE[prefilter] --> TRI[triage]
-    TRI --> SEL[select + extract]
+    ING[ingest] --> ASSESS[assess] --> RANK[rank]
+    RANK --> SEL[select + extract]
   end
 
   SRC[(External sources<br/>RSS · APIs · pages)]
@@ -45,7 +45,7 @@ flowchart LR
   VC --> JOBS
   JOBS --> Pipeline
   ING --> SRC
-  TRI --> LLM
+  ASSESS --> LLM
   SEL --> LLM
   JOBS --> MAIL
   Pipeline <--> DB
@@ -80,8 +80,8 @@ content/                      # human-edited, reviewed in git, validated in CI
   sources/*.yaml              # one file per domain group; source registry (R§5.2)
   domains/*.yaml              # 15 domains: subfields, signals, research/products/people
   people.yaml                 # specialists + cross-disciplinary thinkers
-  keywords.yaml               # prefilter keyword lists per domain
-  config.yaml                 # scoring weights, budget, schedule, model ids
+  topics.yaml                 # topic tags per domain, the only tags assessment may use
+  config.yaml                 # score weights, rank bonuses, budget, model ids, prices
 src/
   app/                        # pages (§10), /api/jobs/[name], /api/me, /login
   lib/
@@ -89,7 +89,7 @@ src/
     connectors/               # one file per method: rss, arxiv, hf-papers, github-search,
                               #   biorxiv, ctgov, hn, page-monitor; index.ts = registry
     http/                     # fetch wrapper: UA, timeout, conditional GET, robots, retry
-    pipeline/                 # ingest, canonicalize, prefilter, triage, extract, ...
+    pipeline/                 # ingest, canonicalize, assess, rank, extract (later), ...
     llm/                      # client, budget ledger, prompts/<name>.v<N>.ts, output schemas
     db/                       # drizzle schema, client, queries
     email/                    # templates + send
@@ -138,7 +138,7 @@ A connector is a pure function of (config, state, HTTP). It never writes to the 
 3. Run connectors with concurrency 4 until the **240 s budget** is used up. Sources left over stay due for the next run.
 4. Apply the source's `filter` (categories, title and URL patterns from the registry). Items that fail are dropped before storage. Then, for each item: **canonicalize**. Lowercase the host, force https, strip `utm_*`/`ref`/fragments, map arXiv `pdf/`→`abs/` and drop the version suffix, and use a DOI when present. Then **upsert** on `canonical_url`. If the item already exists, add an `item_mentions` row instead (the same paper arriving from HF Papers and a lab blog is one item with two mentions; mentions are a signal in their own right).
 5. Update `source_state`: cursor, ETag/Last-Modified, `last_success_at` or `last_error`, `consecutive_failures`, `next_due_at = now + frequency`. On failure, back off exponentially, capped at 24 h.
-6. Run the **prefilter** (§7.1) on new items in the same job. It's cheap and needs no LLM.
+6. The `hourly` job then assesses new items (§7.2) and re-ranks recent ones (§7.3).
 
 Idempotent: re-running steps 2–6 can't duplicate items (unique keys). Each source is processed in its own transaction, so a timeout loses at most one source's work, and that source is retried on the next run.
 
@@ -170,27 +170,28 @@ source_state     source_id PK→sources, cursor jsonb, etag, last_modified,
 items            id PK, canonical_url UNIQUE, external_id, external_kind,
                  first_source_id→sources, title, authors text[], published_at,
                  fetched_at, excerpt varchar(300), abstract text NULL,
-                 domains text[], layer, tier,       -- from source; triage may override
-                 status enum(new, filtered_out, queued, triaged_out, triaged,
-                             selected, extracted),
-                 filter_reason text NULL,
+                 domains text[],                    -- the assessment's once assessed
+                 source_domains text[],             -- what the source said
+                 layer, kind, tier,
+                 tags text[], quality smallint NULL, rank real NULL  -- copied from the assessment / §7.3
                  search tsvector GENERATED (title || excerpt || abstract)
                  UNIQUE(external_kind, external_id) WHERE external_id IS NOT NULL
 item_mentions    item_id→items, source_id→sources, seen_at, url, signals jsonb
                  PK(item_id, source_id, seen_at::date)
 
-triage           item_id PK→items, relevant bool, domains text[], cross_tags text[],
-                 layer, novelty smallint, reason text, llm_call_id→llm_calls
+item_assessments item_id PK→items, prompt_version, model, assessed_at, relevant bool,
+                 domains text[], topics text[], proposed_topics text[], contribution,
+                 artifacts text[], novelty..maturity smallint, quality smallint,
+                 takeaway text, rationale text, llm_call_id→llm_calls
 developments     item_id PK→items, technology, subfield, claim, previous_limitation,
                  new_capability, quantitative_improvement jsonb NULL,
                  evidence_type, claim_status, maturity, significance,
                  confidence smallint, confidence_reason, evidence_item_ids bigint[],
                  llm_call_id→llm_calls, prompt_version
 
-llm_calls        id PK, purpose, model, prompt_version, batch_id NULL,
-                 status enum(reserved, settled, released),
-                 reserved_usd numeric, input_tokens, output_tokens,
-                 cache_read_tokens, cache_write_tokens, cost_usd numeric, created_at
+llm_calls        id PK, purpose, model, prompt_version, status (ok | failed),
+                 input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+                 cost_usd numeric, item_count, error, created_at
 llm_batches      id PK, anthropic_batch_id, purpose, status, submitted_at, ended_at,
                  item_ids bigint[]
 
@@ -206,25 +207,28 @@ login_attempts   ip_hash, at                       -- rate limiting
 
 ## 7. Processing pipeline
 
-### 7.1 Prefilter (rules, no LLM)
-Applied per source tier and per source, with all config in `content/keywords.yaml` and `config.yaml`:
-- `tier = broad` → status `filtered_out` (reason `broad-tier`), still shown in the feed (R§3).
-- Everything else from deep- and regular-tier sources passes.
+### 7.1 Filtering (rules, no LLM)
+Source filters (R§5.2 `filter`) run at ingestion, so filtered items are never stored. There is no separate prefilter: every stored item, in every tier, is assessed.
 
-Passing items → `queued`.
+### 7.2 Assess (Claude Opus 5.5, synchronous, hourly) — `pipeline/assess.ts`
+- Runs in the `hourly` job after ingestion, until 60 s before the job's 240 s budget. Takes unassessed items newest first, 20 per request (`content/config.yaml`). `npm run job assess -- --retag` also redoes items assessed by an older prompt version; `--dry-run` calls the model, records the cost, prints the results and writes nothing.
+- Input: a JSON array of `{id, source, sourceKind, layer, title, authors≤3, published, text}`, where `text` is the abstract cut to 1500 characters, or the excerpt. The system prompt (domains, their topics, contribution types, score anchors) is the same in every call and is cached.
+- Output: structured output (`output_config.format`), one result per item: `relevant, domains[], topics[], proposed_topics[], contribution, artifacts[], novelty, magnitude, evidence, breadth, maturity, takeaway, rationale`.
+- The SDK turns zod enums and ranges into description hints, so the API does not enforce them. Each result is therefore checked on its own: a result that doesn't match the item schema, or whose id wasn't in the batch, is dropped and the item retried next run. Unknown topics become proposals, unknown domains are dropped (falling back to the source's), so one bad value never costs the batch.
+- Writes `item_assessments`, then copies `domains`, `tags`, `quality` and the re-derived `tier` onto `items`.
+- Effort `low`; thinking is adaptive (always on for Opus 5.5). Server-side refusal fallback is on (`fallbacks: "default"`).
 
-### 7.2 Triage (Claude Haiku 5.5, synchronous, hourly)
-- Runs in the hourly job right after ingestion. Takes up to 400 `queued` items, in requests of 40 items each.
-- Input is a JSON array of `{id, source, title, excerpt≤300}`. The system prompt holds the domain taxonomy and layer definitions and is cached (it's identical in every call).
-- Output schema (structured output): `[{id, relevant, domains[], cross_tags[], layer, novelty 1–5, reason≤20 words}]`. Any `id` that wasn't in the input is rejected.
-- Effort `low`. → status `triaged` / `triaged_out`.
+### 7.3 Rank (rules, hourly) — `pipeline/rank.ts`
+- `rank = quality (or 40 if unassessed) + 8 per further source (max +16) + up to +10 from HF upvotes (log scale, full at 200) + source priority (+5 / 0 / −5) − 40 if not relevant`. All numbers in `content/config.yaml`.
+- Recomputed every hour for items from the last 60 days (and any never ranked), because upvotes and mentions keep changing.
+- "Top" views sort by rank within a window (7 days, 30 days, all time) instead of decaying it over time.
 
-### 7.3 Select + extract (Claude Sonnet 5.5, Message Batches, daily)
-- **Select** (04:00 Dubai, deterministic, no LLM): rank `triaged` items from the last 36 h by `novelty × tier_weight + mention_bonus` (more independent sources means a higher score). Take the top 25, with a cap per domain so AI can't take every slot. Status `selected`.
-- **Extract:** submit one Message Batch (50% price) with one request per item: the item plus any mentions' titles → Development fields (R§6.3) as structured output.
-- The hourly job polls open batches and writes results, then `revalidateTag('feed')`.
+### 7.4 Select + extract (not built yet; Claude Sonnet 5.5, Message Batches, daily)
+- **Select** (04:00 Dubai, no LLM): the top 25 items by rank from the last 36 h, with a cap per domain so AI can't take every slot.
+- **Extract:** one Message Batch (50% price) with one request per item: the item plus any mentions' titles → Development fields (R§6.3) as structured output.
+- The hourly job polls open batches and writes results, then `revalidateTag('items')`.
 
-### 7.4 Weekly / monthly overviews (Phase 2–3)
+### 7.5 Weekly / monthly overviews (Phase 2–3)
 - These are Opus synchronous jobs that read developments and trends, never raw items.
 - **Link integrity:** the model can only refer to items by `item_id`. Every URL on the page and in any email comes from the `items` table, never from model text. Entries with unknown IDs are dropped.
 - If the budget is exhausted, the report is skipped and the health page says so.
@@ -233,46 +237,46 @@ Passing items → `queued`.
 
 ### 8.1 Model mix and cost estimate
 
-Prices from the current Claude model table: Haiku 5.5 $0.10/$0.50, Sonnet 5.5 $2/$10, Opus 5.5 $4/$20 per million input/output tokens. Batches cost 50% less. Volumes are estimates, to be replaced with measurements after week 1.
+Prices from the current Claude model table: Haiku 5.5 $0.10/$0.50, Sonnet 5.5 $2/$10, Opus 5.5 $4/$20 per million input/output tokens. Batches cost 50% less. Volumes are estimates: the real volume is ~30 new items/day. Replace with measurements from `llm_calls` after week 1.
 
 | Step | Model | Volume/day | Est. tokens/day (in / out incl. thinking) | Est. $/month |
 |---|---|---|---|---|
-| Triage | `claude-haiku-5-5`, effort low | ~200 items, 5 calls | 35k / 15k | ~$0.30 |
+| Assess | `claude-opus-5-5`, effort low | ~30 items, 2 calls | 15k + cached system / ~10k | ~$6–8 |
 | Extraction | `claude-sonnet-5-5`, batch, effort low | 25 items | 60k / 40k | ~$7.80 |
 | Weekly report (P2) | `claude-opus-5-5` | ~4 calls/month | 30k / 10k per call | ~$1.40 |
 | Monthly report (P3) | `claude-opus-5-5` | 1 call/month | 60k / 20k per call | ~$0.60 |
-| **Total** | | | | **~$10.10**, about half the cap |
+| **Total** | | | | **~$16–18**, close to the cap |
 
-The owner should know: **using Opus 5.5 for every step would come to roughly $31/month**, over the cap. This plan puts Opus only on the reports, where synthesis quality matters most. Model IDs live in `config.yaml`, so swapping one is a config change.
+Assessment uses Opus because judging what is new is the point of the score, and at this volume it fits. With extraction added, the total gets close to the cap: if measured spend says so, move assessment to `claude-sonnet-5-5` (about half the cost) in `content/config.yaml`, no code change.
 
-### 8.2 Budget ledger (enforces R§4 Phase 1)
+### 8.2 Budget guard (enforces R§4 Phase 1) — `llm/budget.ts`
 
 ```
-reserve(purpose, model, estInputTokens, maxTokens, batch?) → callId | BudgetExceeded
-  worst = estIn × inPrice + maxTokens × outPrice  (× 0.5 if batch)
-  allowance_today = (cap − spent_this_month − reserved_open) / days_left_in_month
-  if spent_today + reserved_today + worst > allowance_today × 1.5 → BudgetExceeded
+before each call:
+  worst = (system + user chars) / 3 × inPrice + maxTokens × outPrice
+  if spent_this_month + worst > cap                                  → stop
+  allowance_today = (cap − spent_before_today) / days_left_in_month (today included)
+  if spent_today + worst > allowance_today × 1.5                     → stop
   (1.5 lets one day spend more as long as the monthly total stays capped)
-  if spent_this_month + reserved_open + worst > cap → BudgetExceeded
-settle(callId, usage) → cost from actual usage tokens (incl. cache read/write rates)
-release(callId)       → on error before any tokens were billed
+after each call: insert llm_calls with cost from the actual usage (incl. cache read/write rates)
 ```
 
-- Reservation and the checks run in one transaction with `SELECT … FOR UPDATE` on a per-month row, so concurrent jobs can't overspend.
-- Price table in `config.yaml`, keyed by model ID.
-- 80% threshold → one alert email per month (tracked in `job_runs`).
-- Tests: simulated cap → no LLM call is made and ingestion still completes (R§4 acceptance).
+- No reservations: jobs never run concurrently (§9 job lock), so reading the sums and then calling can't race.
+- A stop ends the LLM step for this run without failing the job; items wait, and `/sources` shows how many.
+- Price table in `content/config.yaml`, keyed by model ID. A response served by a fallback model is priced at that model's rate when it's in the table.
+- Not built yet: the 80% alert email.
+- Tests: simulated cap → no LLM call is made (R§4 acceptance).
 
 ### 8.3 Prompts and outputs
-- Prompts live in `src/lib/llm/prompts/<name>.v<N>.ts` and export `{ version, system, buildUser(input), schema }`. Every stored output records `prompt_version` (R§9).
-- Every response is checked with `stop_reason` before any content is read. `max_tokens`/`refusal` → treated as a failed call, released or settled, then retried once.
-- Output schemas are zod, converted to JSON Schema for `output_config.format`, and parsed again with zod on receipt.
+- Prompts live in `src/lib/llm/prompts/<name>.v<N>.ts` and export `version`, `buildSystem`, `buildUser` and the output schema. Every stored output records `prompt_version` (R§9). Bump the version when the prompt changes, then `--retag`.
+- Every response is checked with `stop_reason` before any content is read. Anything but `end_turn` is a failed call: recorded with its cost, and its items retried next run.
+- Output schemas are zod, converted to JSON Schema for `output_config.format` by the SDK, and checked again with zod on receipt, item by item (§7.2).
 
 ### 8.4 Untrusted input (prompt injection)
 Source text is written by third parties and the site is public, so:
 - The LLM gets **no tools**. It only returns structured JSON, and the schema is checked.
 - Source content goes into a clearly delimited data block. The system prompt says that block is data to classify, never instructions.
-- Model text is rendered as escaped plain text. No HTML/Markdown passthrough, and links only come from the DB (§7.4).
+- Model text is rendered as escaped plain text. No HTML/Markdown passthrough, and links only come from the DB (§7.5).
 - Item IDs in outputs must belong to the input set.
 
 ## 9. Scheduling
@@ -281,9 +285,9 @@ All times are Asia/Dubai (UTC+4). Vercel Hobby fires anywhere within the hour, s
 
 | Job | Trigger | UTC cron | Fires (Dubai) | Does |
 |---|---|---|---|---|
-| `hourly` | GitHub Actions | `15 * * * *` | every hour | ingest due sources → prefilter → triage → poll open batches |
+| `hourly` | GitHub Actions | `15 * * * *` | every hour | ingest due sources → assess → rank |
 | `extract` (P1) | Vercel Cron | `0 0 * * *` | 04:00–04:59 | select top 25 → submit extraction batch |
-| `ingest` (safety net) | Vercel Cron | `30 1 * * *` | 05:30–06:29 | same as the hourly ingest, in case GitHub Actions is down |
+| `hourly` (safety net) | Vercel Cron | `30 1 * * *` | 05:30–06:29 | the same job, in case GitHub Actions is down |
 | `weekly` (P2) | Vercel Cron | `0 4 * * 6` | Sat 08:00–08:59 | weekly overview |
 | `monthly` (P3) | Vercel Cron | `0 4 1 * *` | 1st, 08:00–08:59 | monthly overview |
 | `maintenance` | Vercel Cron | `0 23 * * *` | 03:00–03:59 | registry sync, storage check, failure alerts |
@@ -336,7 +340,7 @@ Owner mutations are **server actions** that call `requireOwner()` first.
 - Structured `console` logs (JSON lines) end up in Vercel logs. That's enough for one user, so no APM.
 
 ## 13. Testing and CI
-- **Unit:** canonicalization (an arXiv/DOI/UTM table), prefilter rules, ranking, budget ledger (concurrency + cap), schema parsing.
+- **Unit:** canonicalization (an arXiv/DOI/UTM table), source filters, quality and rank formulas, budget decisions, assessment response handling (stop reasons, unknown ids, invalid items, unknown topics) and the batch loop with a fake LLM client.
 - **Connector fixtures:** recorded responses under `tests/fixtures/<source-id>/`, run through the connector, results snapshotted. A script refreshes them: `npm run fixtures:record <id>`.
 - **LLM steps:** prompt builders are snapshot-tested. Response handling is tested with recorded JSON. CI never makes live LLM calls.
 - **Registry validation:** CI loads every YAML file through zod and fails on unknown domains, duplicate IDs, or connector config that doesn't validate.

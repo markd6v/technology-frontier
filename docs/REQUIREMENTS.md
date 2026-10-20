@@ -1,6 +1,6 @@
 # Technology Frontier Radar — Requirements
 
-Status: draft v0.4 (2026-10-18). v0.4 changes the goal from spotting commercial opportunities to a high-quality overview of recent discoveries, and replaces the starter sources with primary sources only. v0.3 dropped the daily brief: the current build is Phase 0 (sources + website). Turns the "Technology Frontier Intelligence" research brief into something buildable. The decisions from v0.1's open questions are recorded in §11.
+Status: draft v0.5 (2026-10-20). v0.5 replaces Phase 1's triage-then-extract funnel with one assessment pass over every item (tags, scores, rank). v0.4 changes the goal from spotting commercial opportunities to a high-quality overview of recent discoveries, and replaces the starter sources with primary sources only. v0.3 dropped the daily brief. The current build is Phase 0 (sources + website) plus Phase 1's assessment and ranking. Turns the "Technology Frontier Intelligence" research brief into something buildable. The decisions from v0.1's open questions are recorded in §11.
 
 ---
 
@@ -14,7 +14,7 @@ The site collects new items from a fixed set of primary sources, sorts them by d
 
 **Success, measured after 4 weeks of real use:**
 - The owner checks the site on at least 15 of 20 working days, and catching up on a domain takes ≤15 minutes.
-- From Phase 1: at least 70% of triaged items are rated "worth seeing" (thumbs up/down on each item).
+- From Phase 1: at least 70% of assessed items in the Top lists are rated "worth seeing" (thumbs up/down on each item).
 - At least 3 weekly overviews each produce one development the owner reads in full at the original source.
 - Every claim in every output links to its original source.
 
@@ -47,11 +47,13 @@ The site collects new items from a fixed set of primary sources, sorts them by d
 | Term | Meaning |
 |---|---|
 | **Domain** | One of the 15 technology areas (AI, Computing infra, Software infra, Robotics, Biotech, Semiconductors, Energy generation, Energy storage, Materials, Quantum, Space, Neurotech, Security, Financial infra, Communications), plus the cross-domain tags (AI+bio, AI+robotics, …) |
-| **Coverage tier** | `deep` (AI, Computing, Software, Robotics): reviewed daily. `regular` (Biotech, Semis, Energy gen, Storage, Security, Fintech): weekly. `broad` (Materials, Quantum, Space, Neuro, Comms): weekly summary plus monthly deep dive. **Until Phase 2, broad-tier items are ingested and shown in the feed and on domain pages, but they skip LLM triage.** They reach the weekly report only as a rule-based "new this week" list. |
+| **Coverage tier** | `deep` (AI, Computing, Software, Robotics): reviewed daily. `regular` (Biotech, Semis, Energy gen, Storage, Security, Fintech): weekly. `broad` (Materials, Quantum, Space, Neuro, Comms): weekly summary plus monthly deep dive. Since v0.5 every tier is assessed (§4 Phase 1); tiers set how often a domain is reviewed in reports. |
 | **Layer** | Where an item sits: `scientific` (newly possible), `engineering` (reproducible, open, practical to build on), `product` (released for people to use) |
 | **Source** | One feed or endpoint, e.g. "arXiv cs.RO" |
 | **Item** | One raw entry fetched from a source: paper, post, release, trial, repo |
-| **Development** | An item that passed triage, enriched by the LLM with structured fields (§6.3) |
+| **Assessment** | The LLM's one-pass reading of an item: relevance, domains, topic tags, contribution type, the §7 scores and a one-line takeaway (§6.2) |
+| **Topic** | A tag from the fixed list in `content/topics.yaml`, grouped by domain |
+| **Development** | A top-ranked item enriched by the LLM with structured fields (§6.3) |
 | **Trend** | A cluster of developments about the same capability, observed over time across several sources and layers |
 
 ## 4. Scope by phase
@@ -78,17 +80,17 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 - Items are deduplicated by canonical URL (and by DOI/arXiv ID where one exists).
 - One failing source never blocks the others.
 
-### Phase 1 — Triage and extraction
-- **Funnel**: items get cheaper checks first, and the LLM only sees what survives:
-  1. **Rule pre-filter (free):** dedupe; drop broad-tier items (§4 tiers). Category and title rules already ran at ingestion (§5.2 `filter`).
-  2. **Batch triage (small model):** titles plus the first ~300 characters only, 20–50 items per request. Returns relevant or not, domain, layer, and a 1–5 novelty guess.
-  3. **Extraction (stronger model):** only for the top ~15–25 triaged items per day, producing the Development fields (§6.3). Extracted items appear in the feed as enriched cards.
-- **Budget enforcement:** a hard cap of **$20/month**, enforced in code. Spend is tracked per call from the API's token usage. Daily allowance = (remaining budget) ÷ (days left in the month). When the allowance runs out, LLM steps stop for the day. Items stay in the feed untriaged, and the health page says so. At 80% of the monthly cap the owner gets an email.
-- Feed filters for triage results: relevant only, novelty ≥ N, enriched only.
-- Thumbs up/down on each triaged item, stored for tuning later. Owner only.
+### Phase 1 — Assessment, ranking, extraction
+- **Assessment (built):** every new item, in every tier, goes to Claude once, 20 items per request: title, source, first authors and the abstract (up to ~1500 characters) or excerpt. It returns, per item: relevant or not, 1–3 domains, 1–4 topics from `content/topics.yaml` (plus up to 2 proposed new topics, stored for the owner to review), contribution type, released artifacts, the five §7 scores, a takeaway of at most 25 words and a short rationale. The assessment's domains replace the source's on the item; the source's are kept.
+  - At ~30 items/day one pass over everything is cheap, so the earlier small-model triage step is dropped and extraction only uses the rank.
+- **Ranking (built):** quality (§7) plus corroboration, Hugging Face upvotes and source priority, minus a penalty for off-topic items (§7). Recomputed hourly for the last 60 days, since signals keep changing.
+- **Extraction (not built yet):** the Development fields (§6.3) for the top ~15–25 ranked items per day.
+- **Budget enforcement (built):** a hard cap of **$20/month**, enforced in code. Spend is recorded per call from the API's token usage. A call goes ahead only if, at its worst-case cost, the month stays under the cap and today stays under 1.5 × (remaining budget ÷ days left in the month). Otherwise LLM steps stop until the allowance resets; items stay in the feed unassessed, and the sources page shows how many. The 80% alert email is not built yet.
+- Feed: Newest/Top sorting (Top within a week, a month or all time) and a topic filter. Not-relevant items stay visible, dimmed and ranked low.
+- Thumbs up/down on each item, stored for tuning later. Owner only, so it waits for sign-in.
 
 **Acceptance:**
-- ≥95% of queued items are triaged within 2 h of ingestion.
+- ≥95% of new items are assessed within 2 h of ingestion.
 - Every enriched item shows its source link.
 - A company's claim is always labelled as a claim unless an independent source backs it up.
 - LLM spend for the month never goes over $20. A test with a simulated cap proves that LLM calls stop and the feed keeps updating.
@@ -99,7 +101,6 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 - Score with the rubric in §7 and rank trends by it.
 - Weekly overview sections: top results, notable releases, emerging trends, surprises (results that contradict earlier ones), and what to read in full.
 - The owner can merge, split, rename or dismiss trends, and add notes.
-- Broad-tier domains join LLM triage if the last 30 days of Phase 1 spend left at least 30% of the budget unused. Otherwise they stay rule-only and the owner decides whether to raise the cap.
 
 **Acceptance:**
 - Hand-test on seeded history: the system links ≥3 items about the same capability that use different wording into one trend.
@@ -177,8 +178,8 @@ Other primary sources from the brief go into the registry with `enabled: false` 
 ### 6.1 Item (raw)
 `id, source_id, url, canonical_url, external_id (DOI/arXiv/NCT), title, authors, published_at, fetched_at, summary/abstract, raw_payload, content_hash`
 
-### 6.2 Triage result
-`item_id, relevant (bool), domains[], cross_domain_tags[], layer, novelty (1–5), model, prompt_version, cost`
+### 6.2 Assessment
+`item_id, relevant (bool), domains[], topics[], proposed_topics[], contribution, artifacts[], novelty, magnitude, evidence, breadth, maturity (1–5 each), quality (0–100), takeaway, rationale, model, prompt_version, llm_call_id`
 
 ### 6.3 Development (enriched)
 | Field | Notes |
@@ -203,7 +204,7 @@ Other primary sources from the brief go into the registry with `enabled: false` 
 
 ## 7. Scoring
 
-Each dimension is scored 1–5 by the LLM, with a one-line reason. The owner can override any score.
+Each dimension is scored 1–5 by the LLM for every item (§4 Phase 1), with one short rationale for all five. Owner overrides come with sign-in.
 
 | Dimension | Weight |
 |---|---|
@@ -213,7 +214,9 @@ Each dimension is scored 1–5 by the LLM, with a one-line reason. The owner can
 | Breadth | 15% |
 | Maturity | 10% |
 
-`score = Σ (weight × (s − 1) / 4) × 100`, which maps all-1s to 0 and all-5s to 100. Weights live in config, not code. Commercial potential is deliberately not a dimension.
+`quality = Σ (weight × (s − 1) / 4) × 100`, which maps all-1s to 0 and all-5s to 100. Commercial potential is deliberately not a dimension.
+
+**Rank** (what "Top" sorts by) = quality, or a neutral value before assessment, + a bonus per further source that reported the item (capped) + up to a fixed bonus from Hugging Face upvotes (log scale) + a source-priority adjustment − a penalty if the item isn't relevant. Weights and bonuses live in `content/config.yaml`, not code.
 
 ## 8. Pages
 
@@ -234,7 +237,7 @@ Must work at phone width (the owner reads it on a phone). Owner-only controls (r
 - **Schedule** (all times Asia/Dubai, UTC+4):
   - Feed/API sources: hourly for `hourly`, otherwise once a day at 02:00.
   - Page monitors: once a day at 02:00.
-  - Triage runs hourly after ingestion (Phase 1). Extraction is submitted once a day. Vercel Hobby cron fires anywhere in the scheduled hour; see ARCHITECTURE §9.
+  - Assessment and ranking run hourly after ingestion (Phase 1). Extraction, once built, is submitted once a day. Vercel Hobby cron fires anywhere in the scheduled hour; see ARCHITECTURE §9.
   - Weekly overview: Saturday 08:00. Monthly overview: 1st of the month at 08:00.
 - **Politeness:** respect robots.txt and rate limits. Identify with a User-Agent. Back off on errors.
 - **Traceability:** store the prompt version and model with every LLM output, so outputs can be re-run when prompts change.
@@ -251,7 +254,7 @@ Must work at phone width (the owner reads it on a phone). Owner-only controls (r
 - **Jobs:**
   - Daily/weekly/monthly jobs: Vercel Cron calling protected route handlers.
   - Hourly ingestion: a scheduled GitHub Actions workflow calling the same protected endpoint. Vercel Cron's frequency limit depends on the plan, so check it when setting up. GitHub's scheduled runs can start several minutes late, so nothing time-critical depends on them.
-- **LLM:** Claude API through the official TypeScript SDK. A small model for triage, a stronger one for extraction and reports. Pick the exact models in Phase 1 by checking current pricing against the $20/month cap.
+- **LLM:** Claude API through the official TypeScript SDK. Claude Opus 5.5 at low effort for assessment (~$6–8/month at current volume); the model id is in `content/config.yaml`.
 - **Email (alerts only):** a transactional email API (Resend proposed: it has a simple Node SDK and a free tier). Needs a verified sending domain or the provider's test sender.
 - **Registry and domain content:** YAML files in the repo, so edits are reviewable in git. At deploy time they are validated against a schema.
 
@@ -264,10 +267,11 @@ Must work at phone width (the owner reads it on a phone). Owner-only controls (r
 | 3 | Daily brief | Dropped (2026-10-18). Email is used only for alerts; times are Asia/Dubai |
 | 4 | Feedless starter sources | Build page monitors (Anthropic, Physical Intelligence, imec). ARPA-E stays manual because it renders with JavaScript |
 | 5 | bioRxiv / ClinicalTrials.gov | Dropped (2026-10-18): raw preprint and trial-registry streams were mostly noise. Peer-reviewed journals cover biotech instead |
-| 6 | Broad-tier domains | Registry and feed only until Phase 2. No LLM triage |
+| 6 | Broad-tier domains | Registry and feed only until Phase 2. No LLM triage. Superseded by #10: every tier is assessed |
 | 7 | Access | Public, read-only. Owner signs in with a single password to write |
 | 8 | Goal | (2026-10-18) A high-quality overview of recent discoveries and developments, not commercial opportunity spotting. The commercial layer, opportunity report and business-oriented scoring dimensions are removed |
 | 9 | Sources | (2026-10-18) Primary sources only. Dropped: Hacker News, GitHub new repos, arXiv cs.LG/cs.RO firehoses, bioRxiv, ClinicalTrials.gov, Cloudflare, NVIDIA, SemiAnalysis, Stratechery, MIT Technology Review, IEEE Spectrum, IEA, YC Companies |
+| 10 | Tagging and ranking | (2026-10-20) One assessment pass over every item with Claude Opus 5.5 instead of small-model triage plus extraction: real volume is ~30 items/day, not ~200. Topics come from a fixed list. The assessment's domains replace the source's. Off-topic items are ranked low, not hidden |
 
 ## 12. Open questions
 
