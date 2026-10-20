@@ -87,7 +87,7 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 - **Ranking (built):** quality (§7) plus corroboration, Hugging Face upvotes and source priority, minus a penalty for off-topic items (§7). Recomputed hourly for the last 60 days, since signals keep changing.
 - **Extraction (not built yet):** the Development fields (§6.3) for the top ~15–25 ranked items per day.
 - **Budget enforcement (built):** a hard cap of **$20/month**, enforced in code. Spend is recorded per call from the API's token usage. A call goes ahead only if, at its worst-case cost, the month stays under the cap and today stays under 1.5 × (remaining budget ÷ days left in the month). Otherwise LLM steps stop until the allowance resets; items stay in the feed unassessed, and the sources page shows how many. The 80% alert email is not built yet.
-- Feed: Newest/Top sorting (Top within a week, a month or all time) and a topic filter. Not-relevant items stay visible, dimmed and ranked low.
+- Lists: Top this week / Top this month / Newest sorting, and a topic filter on domain pages. Off-topic items and items scoring below `feed.minQuality` are hidden unless the reader chooses "Show all" (decision #12).
 - Thumbs up/down on each item, stored for tuning later. Owner only, so it waits for sign-in.
 
 **Acceptance:**
@@ -223,9 +223,10 @@ Each dimension is scored 1–5 by the LLM for every item (§4 Phase 1), with one
 
 | Page | Phase | Contents |
 |---|---|---|
-| Home | 0 | Latest items per deep-tier domain, plus source health at a glance |
-| Feed | 0 | All items, with filters (domain, layer, kind, source, date) and search |
-| Domain `/d/{slug}` | 0 | Subfields, signals to watch, research/product/people lists, recent items, trends (P2) |
+| Home ("This week") | 0 | The week's top items per domain (5 deep, 3 regular, 2 broad), quiet domains in one line, source health |
+| Domains | 0 | Items per domain × layer over the week, grouped by tier, plus the cross-domain watchlist |
+| Domain `/d/{slug}` | 0 | The domain's items: sort, layer and topic filters. An About tab has subfields, signals to watch, research/product/people lists; trends (P2) |
+| All items `/feed` | 0 | Every domain in one list, with search and a collapsed domain/layer/topic filter panel |
 | Sources | 0 | Registry table plus health status |
 | People | 0 | Specialists and cross-disciplinary thinkers, with links and feeds |
 | Overviews archive | 2 | Weekly / monthly overviews by date |
@@ -274,6 +275,7 @@ Must work at phone width (the owner reads it on a phone). Owner-only controls (r
 | 9 | Sources | (2026-10-18) Primary sources only. Dropped: Hacker News, GitHub new repos, arXiv cs.LG/cs.RO firehoses, bioRxiv, ClinicalTrials.gov, Cloudflare, NVIDIA, SemiAnalysis, Stratechery, MIT Technology Review, IEEE Spectrum, IEA, YC Companies |
 | 10 | Tagging and ranking | (2026-10-20) One assessment pass over every item with Claude Opus 5.5 instead of small-model triage plus extraction: real volume is ~30 items/day, not ~200. Topics come from a fixed list. The assessment's domains replace the source's. Off-topic items are ranked low, not hidden |
 | 11 | Free assessment for now | (2026-10-20) Run assessment locally through the Claude Code CLI on the owner's subscription, scheduled with launchd, writing to the production DB. Switch to the API by setting `ANTHROPIC_API_KEY` in Vercel |
+| 12 | Navigation and default views | (2026-10-20) Domain is the main way in: the home page is a per-domain digest of the week and each domain page is its own feed, so the busiest domain (AI, about half the volume) can't bury the rest. Lists default to Top, not Newest, and hide off-topic and low-scoring items behind "Show all". Source and source type are no longer feed filters; each source has its own page |
 
 ## 12. Open questions
 

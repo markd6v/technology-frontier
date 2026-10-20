@@ -28,7 +28,7 @@ const SCORING: { dim: string; key: keyof ScoreWeights; q: string }[] = [
 ];
 
 export default function FrameworkPage() {
-  const { scoreWeights, rank } = registry().config;
+  const { scoreWeights, rank, feed } = registry().config;
   return (
     <>
       <PageHeader title="How to read the frontier">
@@ -104,14 +104,18 @@ export default function FrameworkPage() {
         <div className="mt-3 space-y-3 text-muted">
           <p>
             Claude reads each new item once (title plus abstract or excerpt) and scores each dimension 1–5. The
-            weighted sum gives the quality score out of 100 shown next to each item. With only a title to go on, scores
+            weighted sum gives the quality score out of 100 shown next to each item in &ldquo;Top&rdquo; lists. With only a title to go on, scores
             stay near the middle. The weights are a starting hypothesis, not a validated model.
           </p>
           <p>
             &ldquo;Top&rdquo; lists sort by rank: quality, plus {rank.perExtraSource} for each further source that
             reported the item (up to {rank.maxSourceBonus}), up to {rank.maxUpvoteBonus} for Hugging Face upvotes, and
             a small bonus or penalty for the source&apos;s priority. Items that are company news or otherwise off-topic
-            lose {Math.abs(rank.notRelevant)} and are shown dimmed. Items not yet assessed rank at {rank.unassessed}.
+            lose {Math.abs(rank.notRelevant)}. Items not yet assessed rank at {rank.unassessed}.
+          </p>
+          <p>
+            Lists hide off-topic items and items scoring below {feed.minQuality} unless you choose &ldquo;Show
+            all&rdquo;; hidden items are shown dimmed.
           </p>
           <p>
             The same pass tags each item with topics from a fixed list and can move it to the domains its content is

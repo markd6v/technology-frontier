@@ -4,17 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/feed", label: "Latest" },
+  { href: "/", label: "This week" },
   { href: "/domains", label: "Domains" },
-  { href: "/sources", label: "Sources" },
+  { href: "/feed", label: "All items" },
 ];
 
 export function Nav() {
   const pathname = usePathname();
   const active = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`) || (href === "/domains" && pathname.startsWith("/d/"));
+    pathname === href ||
+    (href !== "/" && pathname.startsWith(`${href}/`)) ||
+    (href === "/domains" && pathname.startsWith("/d/"));
   return (
-    <nav className="flex min-w-0 gap-4 overflow-x-auto text-sm [scrollbar-width:none]">
+    <nav className="flex min-w-0 gap-3 overflow-x-auto sm:gap-4 text-sm [scrollbar-width:none]">
       {LINKS.map((l) => (
         <Link
           key={l.href}

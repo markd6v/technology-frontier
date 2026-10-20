@@ -1,6 +1,7 @@
 import { and, arrayOverlaps, count, desc, eq, gte, inArray, sql, type SQL } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { db, schema } from "@/lib/db";
+import { registry } from "@/lib/registry";
 
 const REVALIDATE = 300;
 const { items, itemMentions, itemAssessments, sourceState } = schema;
@@ -16,6 +17,10 @@ export type FeedFilters = {
   sort?: "newest" | "top";
   days?: number;
   page?: number;
+  /** Rows per page; defaults to PAGE_SIZE. */
+  limit?: number;
+  /** Include off-topic and low-scoring items (config feed.minQuality), which lists hide by default. */
+  all?: boolean;
 };
 
 export type FeedItem = {
@@ -41,6 +46,12 @@ export type FeedItem = {
 
 export const PAGE_SIZE = 40;
 
+/** Not marked off-topic, and not assessed below feed.minQuality. Unassessed items stay visible. */
+function visible(): SQL {
+  return sql`(${items.quality} is null or ${items.quality} >= ${registry().config.feed.minQuality})
+    and not exists (select 1 from ${itemAssessments} a where a.item_id = ${items.id} and a.relevant = false)`;
+}
+
 function where(f: FeedFilters): SQL | undefined {
   const conds: SQL[] = [];
   if (f.domain) conds.push(arrayOverlaps(items.domains, [f.domain]));
@@ -54,6 +65,7 @@ function where(f: FeedFilters): SQL | undefined {
     );
   }
   if (f.q?.trim()) conds.push(sql`${items.search} @@ websearch_to_tsquery('english', ${f.q.trim()})`);
+  if (!f.all) conds.push(visible());
   return conds.length ? and(...conds) : undefined;
 }
 
@@ -112,21 +124,29 @@ const newestFirst = [desc(items.sortAt), desc(items.id)];
 const topFirst = [sql`${items.rank} desc nulls last`, ...newestFirst];
 
 export const getFeed = unstable_cache(
-  async (f: FeedFilters): Promise<{ items: FeedItem[]; total: number }> => {
+  /** `hidden` counts the items these filters match that are left out because `all` is unset. */
+  async (f: FeedFilters): Promise<{ items: FeedItem[]; total: number; hidden: number }> => {
     const page = Math.max(1, f.page ?? 1);
+    const limit = f.limit ?? PAGE_SIZE;
     const filter = where(f);
-    const [rows, [{ total }]] = await Promise.all([
+    const [rows, [{ total, matching }]] = await Promise.all([
       db()
         .select(feedColumns)
         .from(items)
         .leftJoin(itemAssessments, withAssessment)
         .where(filter)
         .orderBy(...(f.sort === "top" ? topFirst : newestFirst))
-        .limit(PAGE_SIZE)
-        .offset((page - 1) * PAGE_SIZE),
-      db().select({ total: count() }).from(items).where(filter),
+        .limit(limit)
+        .offset((page - 1) * limit),
+      db()
+        .select({
+          total: f.all ? count() : sql<number>`(count(*) filter (where ${visible()}))::int`,
+          matching: count(),
+        })
+        .from(items)
+        .where(where({ ...f, all: true })),
     ]);
-    return { items: await attachMentions(rows), total };
+    return { items: await attachMentions(rows), total, hidden: matching - total };
   },
   ["feed"],
   { revalidate: REVALIDATE, tags: ["items"] },
@@ -150,20 +170,6 @@ export const getLatestByDomain = unstable_cache(
     return out;
   },
   ["latest-by-domain"],
-  { revalidate: REVALIDATE, tags: ["items"] },
-);
-
-export const getDomainCounts = unstable_cache(
-  async (days: number): Promise<Record<string, number>> => {
-    const since = new Date(Date.now() - days * 86_400_000);
-    const rows = await db()
-      .select({ domain: sql<string>`unnest(${items.domains})`, n: count() })
-      .from(items)
-      .where(gte(items.sortAt, since))
-      .groupBy(sql`1`);
-    return Object.fromEntries(rows.map((r) => [r.domain, r.n]));
-  },
-  ["domain-counts"],
   { revalidate: REVALIDATE, tags: ["items"] },
 );
 
@@ -233,7 +239,10 @@ export const getTotals = unstable_cache(
 
 export type BoardCell = { n: number; topTitle: string };
 
-/** Items per domain × layer over the last `days`, with the most-corroborated headline in each cell. */
+/**
+ * Items per domain × layer over the last `days`, with the top-ranked headline in each cell.
+ * Counts only what lists show by default (see `visible`).
+ */
 export const getLayerBoard = unstable_cache(
   async (days: number): Promise<Record<string, Record<string, BoardCell>>> => {
     const since = new Date(Date.now() - days * 86_400_000);
@@ -243,6 +252,8 @@ export const getLayerBoard = unstable_cache(
                (select count(distinct m.source_id) from ${itemMentions} m where m.item_id = i.id) as srcs
         from ${items} i
         where i.sort_at >= ${since.toISOString()}
+          and (i.quality is null or i.quality >= ${registry().config.feed.minQuality})
+          and not exists (select 1 from ${itemAssessments} a where a.item_id = i.id and a.relevant = false)
       )
       select domain, layer, count(*)::int as n,
              (array_agg(title order by rank desc nulls last, srcs desc, sort_at desc))[1] as top_title

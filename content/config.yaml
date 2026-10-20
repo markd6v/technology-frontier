@@ -19,6 +19,10 @@ rank:
   sourcePriority: { "1": 5, "2": 0, "3": -5 }
   notRelevant: -40
 
+# Lists hide off-topic items and assessed items scoring below this, unless the reader asks for all.
+feed:
+  minQuality: 30
+
 llm:
   # Hard monthly cap in USD (REQUIREMENTS §4 Phase 1).
   monthlyCapUsd: 20

@@ -123,6 +123,7 @@ export const configSchema = z.object({
     sourcePriority: z.record(z.string(), z.number()),
     notRelevant: z.number(),
   }),
+  feed: z.object({ minQuality: z.number().min(0).max(100) }),
   llm: z.object({
     monthlyCapUsd: usd,
     assess: z.object({
