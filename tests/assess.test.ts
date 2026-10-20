@@ -261,6 +261,14 @@ describe("processBatches", () => {
     ]);
   });
 
+  it("counts batch items the model skipped", async () => {
+    const partial: LlmClient = { complete: async () => response([result(1)]) };
+    const d = deps(partial);
+    const stats = await processBatches([[candidate(1), candidate(2), candidate(3)]], d.deps);
+    expect(stats.assessed).toBe(1);
+    expect(stats.missing).toBe(2);
+  });
+
   it("stops starting requests after the deadline", async () => {
     const d = deps(echo);
     const stats = await processBatches([[candidate(1)]], d.deps, { deadline: Date.now() - 1 });

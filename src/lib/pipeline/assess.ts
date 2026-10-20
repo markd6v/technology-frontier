@@ -150,6 +150,8 @@ export type AssessStats = {
   apiEquivalentUsd: number;
   failedCalls: number;
   unknownIds: number;
+  /** Batch items the model returned no result for; they are retried next run. */
+  missing: number;
   /** Results that didn't match the item schema (e.g. a score of 6); those items are retried next run. */
   invalid: number;
   /** Why the run stopped before going through every candidate. */
@@ -179,6 +181,7 @@ export async function processBatches(
     apiEquivalentUsd: 0,
     failedCalls: 0,
     unknownIds: 0,
+    missing: 0,
     invalid: 0,
     errors: [],
     rows: [],
@@ -248,6 +251,7 @@ export async function processBatches(
     }
     stats.unknownIds += interpreted.unknownIds;
     stats.invalid += interpreted.invalid;
+    stats.missing += batch.length - interpreted.results.length;
     const rows = interpreted.results.map((r) =>
       toAssessment(r, byId.get(r.id)!, { model: res.model, weights: config.scoreWeights, llmCallId: callId, now }),
     );
@@ -287,6 +291,7 @@ export async function assessItems(opts: AssessOptions = {}): Promise<Omit<Assess
       apiEquivalentUsd: 0,
       failedCalls: 0,
       unknownIds: 0,
+      missing: 0,
       invalid: 0,
       errors: [],
       stoppedBy: "no LLM configured (set ANTHROPIC_API_KEY, or ASSESS_PROVIDER=claude-code locally)",

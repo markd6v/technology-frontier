@@ -56,6 +56,7 @@ function printAssess(stats: Awaited<ReturnType<typeof assessItems>>) {
       (stats.failedCalls ? `, ${stats.failedCalls} failed` : "") +
       (stats.unknownIds ? `, ${stats.unknownIds} unknown ids dropped` : "") +
       (stats.invalid ? `, ${stats.invalid} invalid results` : "") +
+      (stats.missing ? `, ${stats.missing} items got no result (retried next run)` : "") +
       (stats.stoppedBy ? ` — stopped: ${stats.stoppedBy}` : ""),
   );
   for (const e of stats.errors) console.log(`  error: ${e}`);
