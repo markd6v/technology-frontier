@@ -279,13 +279,21 @@ Source text is written by third parties and the site is public, so:
 - Model text is rendered as escaped plain text. No HTML/Markdown passthrough, and links only come from the DB (§7.5).
 - Item IDs in outputs must belong to the input set.
 
+### 8.5 Subscription mode (local Claude Code CLI) — `llm/claude-code.ts`
+- `ASSESS_PROVIDER=claude-code` makes the assess step run each batch as `claude -p --model <id> --effort <level> --output-format json --json-schema <schema> --system-prompt <prompt> --tools "" --strict-mcp-config --no-session-persistence`, in an empty temp directory, with the items on stdin. API keys are removed from the child's environment so the subscription login is used.
+- The same safety posture as §8.4: no tools, no MCP servers, no project files, output constrained to the schema (the CLI validates it and retries on mismatch; draft-07, so zod's `$schema` marker is dropped). The per-item checks of §7.2 still run.
+- Calls are stored with `llm_calls.billing = 'subscription'` and `cost_usd = 0`, so they don't count toward the cap; the job stats report the CLI's API-equivalent cost.
+- Runs only on the owner's Mac: `scripts/assess-cron.sh` installs a launchd agent (`StartInterval` 3600 s, so a run missed during sleep happens on wake) that assesses the production database from `.env.cron` and then calls `/api/jobs/rank` to refresh the site's cache. The cloud `hourly` job skips assessment when it has no `ANTHROPIC_API_KEY`.
+- Trade-offs: assessment stalls while the Mac sleeps, and usage counts toward the subscription's limits, shared with interactive use. Switching to the API is `ANTHROPIC_API_KEY` in Vercel plus `npm run cron:uninstall`.
+
 ## 9. Scheduling
 
 All times are Asia/Dubai (UTC+4). Vercel Hobby fires anywhere within the hour, so each daily job is scheduled one hour before its deadline.
 
 | Job | Trigger | UTC cron | Fires (Dubai) | Does |
 |---|---|---|---|---|
-| `hourly` | GitHub Actions | `15 * * * *` | every hour | ingest due sources → assess → rank |
+| `hourly` | GitHub Actions | `15 * * * *` | every hour | ingest due sources → assess (only with `ANTHROPIC_API_KEY`) → rank |
+| `assess` (subscription mode) | launchd on the owner's Mac | every 60 min | while awake | assess → rank via `/api/jobs/rank` (§8.5) |
 | `extract` (P1) | Vercel Cron | `0 0 * * *` | 04:00–04:59 | select top 25 → submit extraction batch |
 | `hourly` (safety net) | Vercel Cron | `30 1 * * *` | 05:30–06:29 | the same job, in case GitHub Actions is down |
 | `weekly` (P2) | Vercel Cron | `0 4 * * 6` | Sat 08:00–08:59 | weekly overview |

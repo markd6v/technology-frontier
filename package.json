@@ -14,6 +14,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx src/cli/migrate.ts",
     "job": "node --env-file-if-exists=.env.local --import tsx src/cli/job.ts",
+    "assess:local": "scripts/assess-cron.sh run",
+    "cron:install": "scripts/assess-cron.sh install",
+    "cron:uninstall": "scripts/assess-cron.sh uninstall",
+    "cron:status": "scripts/assess-cron.sh status",
     "validate:content": "node --import tsx src/cli/validate-content.ts",
     "vercel-build": "npm run db:migrate && next build"
   },

@@ -114,7 +114,7 @@ Scores, each an integer from 1 to 5. Judge from the text you have; with only a t
 - breadth: 1 = one niche; 3 = a subfield; 5 = many fields or a general capability.
 - maturity: 1 = theory or simulation; 2 = lab prototype; 3 = a working system others can run; 4 = a product available to users; 5 = deployed at scale.
 
-takeaway: one sentence of at most 25 words saying what is new, concretely, with the key number if the text gives one. No hype words, no "this paper". Never invent numbers.
+takeaway: exactly one sentence, at most 25 words, saying what is new, concretely, with the key number if the text gives one. Keep only the most important number; leave the rest to the rationale. No hype words, no "this paper". Never invent numbers.
 
 rationale: at most 30 words on why the scores are what they are.`;
 }

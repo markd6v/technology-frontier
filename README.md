@@ -20,7 +20,7 @@ npm run dev
 |---|---|
 | `npm run job hourly` | What the hourly trigger runs: `ingest`, then `assess`, then `rank` |
 | `npm run job ingest` | Fetch sources whose `next_due_at` has passed. `-- --force` ignores it; `-- --source=a,b` limits to some ids |
-| `npm run job assess` | Tag and score unassessed items with Claude (needs `ANTHROPIC_API_KEY`). `-- --limit=N`; `-- --dry-run` prints results and writes nothing (still billed); `-- --retag` also redoes items from an older prompt version |
+| `npm run job assess` | Tag and score unassessed items with Claude (needs `ANTHROPIC_API_KEY`, or `ASSESS_PROVIDER=claude-code`). `-- --limit=N`; `-- --dry-run` prints results and writes nothing (still billed); `-- --retag` also redoes items from an older prompt version |
 | `npm run job rank` | Recompute rank for the last 60 days |
 | `npm run job maintenance` | Sync `content/sources.yaml` into the DB and delete items of sources removed from it |
 | `npm run validate:content` | Validate all YAML in `content/` |
@@ -34,5 +34,29 @@ Add an entry to `content/sources.yaml` (the header comment lists the allowed val
 ## Deploying
 
 1. Create a Neon project and copy the **pooled** connection string.
-2. Import the repo in Vercel. Set `DATABASE_URL`, `CRON_SECRET` and `ANTHROPIC_API_KEY`. The build runs migrations (`vercel.json` → `npm run vercel-build`) and registers the daily crons.
-3. In GitHub → Settings → Secrets → Actions, add `APP_URL` (the Vercel URL) and the same `CRON_SECRET`. This enables `.github/workflows/hourly.yml`, which triggers hourly ingestion. Run it once by hand with `force` to fill the database. Each run assesses only as many items as its time budget allows, so the first fill takes a few runs, or run `npm run job assess` locally against the production `DATABASE_URL`.
+2. Import the repo in Vercel. Set `DATABASE_URL` and `CRON_SECRET`, plus `ANTHROPIC_API_KEY` if assessment should run on the API rather than [on this Mac](#local-assessment). The build runs migrations (`vercel.json` → `npm run vercel-build`) and registers the daily crons.
+3. In GitHub → Settings → Secrets → Actions, add `APP_URL` (the Vercel URL) and the same `CRON_SECRET`. This enables `.github/workflows/hourly.yml`, which triggers hourly ingestion. Run it once by hand with `force` to fill the database.
+
+## Local assessment
+
+Assessment can run on this Mac through the Claude Code CLI and its Claude subscription instead of the API: no API key, nothing billed, but it only runs while the Mac is awake. The cloud hourly job keeps ingesting and ranking; without `ANTHROPIC_API_KEY` it skips assessment. Keep the subscription login on this machine only, never in Vercel or CI.
+
+Needs `claude` logged in (`claude auth status` shows `"authMethod": "claude.ai"`). Create `.env.cron` (git-ignored):
+
+```
+DATABASE_URL=<Neon pooled connection string>
+# Optional: re-rank on the site after each run, which also refreshes its page cache.
+APP_URL=https://<your app>.vercel.app
+CRON_SECRET=<same as Vercel>
+# Optional: cap items per run.
+ASSESS_LIMIT=60
+```
+
+| Command | Does |
+|---|---|
+| `npm run assess:local` | One run now, against `.env.cron` |
+| `npm run cron:install` | Hourly LaunchAgent (also runs once on wake after a missed hour). Log: `~/Library/Logs/frontier-assess.log` |
+| `npm run cron:status` | Agent state and the last log lines |
+| `npm run cron:uninstall` | Remove the agent, e.g. after switching to `ANTHROPIC_API_KEY` |
+
+Calls count toward the subscription's usage limits; the job log shows what the same calls would cost on the API.

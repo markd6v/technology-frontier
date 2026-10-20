@@ -83,6 +83,7 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 ### Phase 1 — Assessment, ranking, extraction
 - **Assessment (built):** every new item, in every tier, goes to Claude once, 20 items per request: title, source, first authors and the abstract (up to ~1500 characters) or excerpt. It returns, per item: relevant or not, 1–3 domains, 1–4 topics from `content/topics.yaml` (plus up to 2 proposed new topics, stored for the owner to review), contribution type, released artifacts, the five §7 scores, a takeaway of at most 25 words and a short rationale. The assessment's domains replace the source's on the item; the source's are kept.
   - At ~30 items/day one pass over everything is cheap, so the earlier small-model triage step is dropped and extraction only uses the rank.
+  - Until an API key is set up, assessment runs on the owner's Mac through Claude Code on the Claude subscription, hourly while the Mac is awake (ARCHITECTURE §8.5). Those calls cost nothing extra and don't count toward the cap.
 - **Ranking (built):** quality (§7) plus corroboration, Hugging Face upvotes and source priority, minus a penalty for off-topic items (§7). Recomputed hourly for the last 60 days, since signals keep changing.
 - **Extraction (not built yet):** the Development fields (§6.3) for the top ~15–25 ranked items per day.
 - **Budget enforcement (built):** a hard cap of **$20/month**, enforced in code. Spend is recorded per call from the API's token usage. A call goes ahead only if, at its worst-case cost, the month stays under the cap and today stays under 1.5 × (remaining budget ÷ days left in the month). Otherwise LLM steps stop until the allowance resets; items stay in the feed unassessed, and the sources page shows how many. The 80% alert email is not built yet.
@@ -272,6 +273,7 @@ Must work at phone width (the owner reads it on a phone). Owner-only controls (r
 | 8 | Goal | (2026-10-18) A high-quality overview of recent discoveries and developments, not commercial opportunity spotting. The commercial layer, opportunity report and business-oriented scoring dimensions are removed |
 | 9 | Sources | (2026-10-18) Primary sources only. Dropped: Hacker News, GitHub new repos, arXiv cs.LG/cs.RO firehoses, bioRxiv, ClinicalTrials.gov, Cloudflare, NVIDIA, SemiAnalysis, Stratechery, MIT Technology Review, IEEE Spectrum, IEA, YC Companies |
 | 10 | Tagging and ranking | (2026-10-20) One assessment pass over every item with Claude Opus 5.5 instead of small-model triage plus extraction: real volume is ~30 items/day, not ~200. Topics come from a fixed list. The assessment's domains replace the source's. Off-topic items are ranked low, not hidden |
+| 11 | Free assessment for now | (2026-10-20) Run assessment locally through the Claude Code CLI on the owner's subscription, scheduled with launchd, writing to the production DB. Switch to the API by setting `ANTHROPIC_API_KEY` in Vercel |
 
 ## 12. Open questions
 
