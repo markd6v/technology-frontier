@@ -56,16 +56,22 @@ function Item({ item, hideDomains, ranked }: ItemProps) {
       );
     }
   }
-  for (const slug of item.tags.slice(0, 3)) {
-    const topic = topics.find((t) => t.slug === slug);
-    meta.push(
-      <Link key={`t-${slug}`} href={topic ? `/d/${topic.domain}?tag=${slug}` : `/feed?tag=${slug}`} className="hover:text-ink">
-        #{topic?.name.toLowerCase() ?? slug}
-      </Link>,
-    );
-  }
   if (offTopic) meta.push(<span key="off">off-topic</span>);
   if (signals.length) meta.push(<span key="sig" className="text-ink">{signals.join(" ")}</span>);
+
+  // Topics are chips rather than dot-separated text, so multi-word topics stay apart from each other and from the meta.
+  const tags = item.tags.slice(0, 3).map((slug) => {
+    const topic = topics.find((t) => t.slug === slug);
+    return (
+      <Link
+        key={slug}
+        href={topic ? `/d/${topic.domain}?tag=${slug}` : `/feed?tag=${slug}`}
+        className="rounded-sm bg-wash px-1.5 text-muted ring-1 ring-line ring-inset hover:text-ink"
+      >
+        {topic?.name ?? slug}
+      </Link>
+    );
+  });
 
   return (
     <li className={`py-3 ${dimmed ? "opacity-60" : ""}`}>
@@ -76,13 +82,14 @@ function Item({ item, hideDomains, ranked }: ItemProps) {
         {item.title}
       </ExternalLink>
       {item.takeaway && <p className="mt-0.5 text-[15px] leading-snug text-muted">{item.takeaway}</p>}
-      <div className="mt-1 flex flex-wrap gap-x-2 text-[13px] text-faint">
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px] text-faint">
         {meta.map((m, i) => (
           <span key={i} className="flex gap-x-2">
             {i > 0 && <span aria-hidden>·</span>}
             {m}
           </span>
         ))}
+        {tags.length > 0 && <span className="flex flex-wrap gap-1.5 sm:ml-1">{tags}</span>}
       </div>
     </li>
   );
