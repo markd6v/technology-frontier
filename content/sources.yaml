@@ -159,6 +159,68 @@
   reliability: Open-weight model, dataset and library releases, often written by the releasing lab
   config: { url: "https://huggingface.co/blog/feed.xml", maxItems: 30 }
 
+- id: gemini-models
+  name: Google Gemini models
+  domains: [ai]
+  kind: release
+  layer: product
+  method: rss
+  homepage: https://blog.google/products/gemini/
+  frequency: hourly
+  priority: 1
+  reliability: Official Gemini model launches; app features and usage tips filtered out
+  config: { url: "https://blog.google/products/gemini/rss/", maxItems: 30 }
+  filter:
+    categories: [Gemini models]
+    excludeTitle: ^(See what|Developing|The latest)\b|\b(tips|ways)\b|responsibl
+
+- id: meta-newsroom
+  name: Meta AI releases
+  domains: [ai]
+  kind: release
+  layer: product
+  method: rss
+  homepage: https://about.fb.com/news/
+  frequency: hourly
+  priority: 1
+  reliability: Model launches from Meta's newsroom (ai.meta.com blocks scripted requests); the newsroom's app, policy and regional posts are filtered out
+  config: { url: "https://about.fb.com/news/feed/", maxItems: 30 }
+  filter:
+    categories: [Technology and Innovation]
+    includeTitle: ^(Introducing|Announcing|Meet)\b|\b(Muse|Llama)\b
+
+- id: xai-news
+  name: xAI News
+  domains: [ai]
+  kind: release
+  layer: product
+  method: page-monitor
+  homepage: https://x.ai/news
+  frequency: hourly
+  priority: 1
+  reliability: Official Grok model and product launches; cloud-marketplace, plan and use-case posts filtered out
+  config:
+    listUrl: https://x.ai/news
+    linkSelector: 'a[href^="/news/"]'
+    allowPrefix: https://x.ai/news/
+    minLinks: 10
+  filter:
+    excludeTitle: \bon (Amazon Bedrock|Vertex AI|Microsoft Foundry|GitHub Copilot|Databricks|Azure)\b|\b(plans?|subscription|partner\w*|government|procurement|customer support|add-?in)\b|^Using\b
+
+- id: mistral-news
+  name: Mistral AI News
+  domains: [ai]
+  kind: release
+  layer: product
+  method: rss
+  homepage: https://mistral.ai/news
+  frequency: hourly
+  priority: 2
+  reliability: Official model and product launches; funding, partnership and event posts filtered out
+  config: { url: "https://mistral.ai/rss.xml", maxItems: 30 }
+  filter:
+    excludeTitle: \b(partner\w*|raises|joins|summit|hackathon|Hallo|Deutschland)\b|\bMistral (and|x)\b|\bwith NVIDIA\b|€|\$
+
 - id: artificial-analysis
   name: Artificial Analysis
   domains: [ai]
