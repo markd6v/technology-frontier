@@ -38,6 +38,14 @@ function categoriesOf(entry: FeedItem): string[] | undefined {
   return kept.length ? kept : undefined;
 }
 
+/** `creator` is a string, or an object when the feed nests `<author><name>` (e.g. blog.google). */
+function authorsOf(entry: FeedItem): string[] | undefined {
+  const raw = entry.creator as unknown;
+  const o = raw as { name?: unknown } | undefined;
+  const name = typeof raw === "string" ? raw : Array.isArray(o?.name) ? o.name[0] : o?.name;
+  return typeof name === "string" && name.trim() ? [name.trim()] : undefined;
+}
+
 export const rssConnector = defineConnector({
   method: "rss",
   configSchema: config,
@@ -75,7 +83,7 @@ export const rssConnector = defineConnector({
         url,
         title,
         publishedAt: parseDate(entry.isoDate ?? entry.pubDate),
-        authors: entry.creator ? [entry.creator] : undefined,
+        authors: authorsOf(entry),
         excerpt: config.titlesOnly ? undefined : excerpt(body),
         categories: categoriesOf(entry),
       });

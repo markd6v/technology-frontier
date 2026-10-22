@@ -32,6 +32,15 @@ describe("rss", () => {
     expect(items[0].categories).toContain("Variable-frequency-drive");
   });
 
+  it("reads author names nested in <author><name>", async () => {
+    const xml = `<rss version="2.0"><channel><title>t</title><item><title>Gemini 4</title>
+      <link>https://blog.google/gemini-4</link><pubDate>Mon, 13 Oct 2026 16:00:00 +0000</pubDate>
+      <author><name>Vishnu Sivaji</name><title>Senior Director</title></author></item></channel></rss>`;
+    const http = fakeHttp([[/blog\.google/, xml]]);
+    const { items } = await rssConnector.fetch(ctx(parse(rssConnector, { url: "https://blog.google/rss/" }), http));
+    expect(items[0].authors).toEqual(["Vishnu Sivaji"]);
+  });
+
   it("titlesOnly drops body text", async () => {
     const http = fakeHttp([[/ieee/, fixture("ieee.xml")]]);
     const config = parse(rssConnector, { url: "https://spectrum.ieee.org/feeds/feed.rss", titlesOnly: true });
