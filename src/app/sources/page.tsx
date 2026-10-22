@@ -13,6 +13,7 @@ const METHOD_LABEL: Record<string, string> = {
   rss: "RSS/Atom",
   arxiv: "arXiv API",
   "hf-papers": "HF API",
+  "hf-models": "HF API",
   "github-search": "GitHub API",
   biorxiv: "bioRxiv API",
   ctgov: "CT.gov API",

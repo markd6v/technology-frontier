@@ -2,7 +2,7 @@
 # Only primary sources: papers, lab research posts and official release channels.
 # No general news, commentary, business or market coverage.
 #
-# method: rss | arxiv | hf-papers | github-search | biorxiv | ctgov | page-monitor | manual
+# method: rss | arxiv | hf-papers | hf-models | github-search | biorxiv | ctgov | page-monitor | manual
 # kind:   research | release | benchmark | press
 # layer:  scientific | engineering | product
 # frequency: hourly | daily | weekly | yearly
@@ -23,6 +23,20 @@
   priority: 1
   reliability: Community-curated arXiv papers; only those with 20+ upvotes are kept
   config: { minUpvotes: 20 }
+
+- id: hf-new-models
+  name: Hugging Face new models
+  domains: [ai]
+  kind: release
+  layer: product
+  method: hf-models
+  homepage: https://huggingface.co/models
+  frequency: hourly
+  priority: 2
+  reliability: Open-weight releases from any lab; only original models under 30 days old with 150+ likes, so quantized copies and other orgs' fine-tunes are skipped
+  config: { minLikes: 150, maxAgeDays: 30 }
+  filter:
+    excludeTitle: -(comfy|gguf|mlx|awq|gptq)$
 
 - id: openai-research
   name: OpenAI Research

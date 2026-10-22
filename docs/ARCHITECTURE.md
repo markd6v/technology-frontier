@@ -87,7 +87,7 @@ src/
   lib/
     registry/                 # YAML loader + zod schemas; build-time import
     connectors/               # one file per method: rss, arxiv, hf-papers, github-search,
-                              #   biorxiv, ctgov, hn, page-monitor; index.ts = registry
+                              #   biorxiv, ctgov, hf-models, page-monitor; index.ts = registry
     http/                     # fetch wrapper: UA, timeout, conditional GET, robots, retry
     pipeline/                 # ingest, canonicalize, assess, rank, extract (later), ...
     llm/                      # client, budget ledger, prompts/<name>.v<N>.ts, output schemas
@@ -110,7 +110,7 @@ Domain and people content is **static content**, compiled in at build time. The 
 ```ts
 interface Connector<C> {
   method: "rss" | "atom" | "arxiv" | "hf-papers" | "github-search"
-        | "biorxiv" | "ctgov" | "hn" | "page-monitor";
+        | "biorxiv" | "ctgov" | "hf-models" | "page-monitor";
   configSchema: z.ZodType<C>;          // validates the source's `filter`/config block
   fetch(ctx: {
     source: Source; config: C;

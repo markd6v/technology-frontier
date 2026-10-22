@@ -3,6 +3,7 @@ import { arxivConnector } from "@/lib/connectors/arxiv";
 import { biorxivConnector } from "@/lib/connectors/biorxiv";
 import { ctgovConnector } from "@/lib/connectors/ctgov";
 import { githubSearchConnector } from "@/lib/connectors/github-search";
+import { hfModelsConnector, isDerivative } from "@/lib/connectors/hf-models";
 import { hfPapersConnector } from "@/lib/connectors/hf-papers";
 import { extractLinks, extractMeta, MonitorGuardError, pageMonitorConnector } from "@/lib/connectors/page-monitor";
 import { parseHnDescription, rssConnector } from "@/lib/connectors/rss";
@@ -73,6 +74,25 @@ describe("arxiv", () => {
 
     const again = await arxivConnector.fetch({ ...ctx(config, http), state: { cursor: state!.cursor, etag: null, lastModified: null, data: {} } });
     expect(again.items).toHaveLength(0);
+  });
+});
+
+describe("hf-models", () => {
+  it("keeps new original models with enough likes", async () => {
+    const http = fakeHttp([[/huggingface\.co\/api\/models/, fixture("hf-models.json")]]);
+    const { items } = await hfModelsConnector.fetch(ctx(parse(hfModelsConnector, {}), http));
+    expect(items.map((i) => i.title)).toEqual(["deepseek-ai/DeepSeek-V4.1-Flash-1017", "LiquidAI/LFM2.5-24B-A2B"]);
+    expect(items[0].url).toBe("https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017");
+    expect(items[0].signals?.hf_likes).toBe(2217);
+    expect(items[0].excerpt).toBe("image-text-to-text · license mit");
+  });
+
+  it("treats an org's own fine-tune as original and everything else derived as a derivative", () => {
+    expect(isDerivative("acme/m-instruct", ["base_model:finetune:Acme/m-base"])).toBe(false);
+    expect(isDerivative("other/m-uncensored", ["base_model:finetune:acme/m"])).toBe(true);
+    expect(isDerivative("acme/m-fp4", ["base_model:quantized:acme/m"])).toBe(true);
+    expect(isDerivative("acme/m-lora", ["base_model:adapter:acme/m"])).toBe(true);
+    expect(isDerivative("acme/m", ["base_model:acme/m-base", "license:mit"])).toBe(false);
   });
 });
 

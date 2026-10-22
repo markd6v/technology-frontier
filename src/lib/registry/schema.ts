@@ -7,6 +7,7 @@ export const METHODS = [
   "rss",
   "arxiv",
   "hf-papers",
+  "hf-models",
   "github-search",
   "biorxiv",
   "ctgov",

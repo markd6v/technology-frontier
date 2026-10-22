@@ -3,6 +3,7 @@ import { arxivConnector } from "./arxiv";
 import { biorxivConnector } from "./biorxiv";
 import { ctgovConnector } from "./ctgov";
 import { githubSearchConnector } from "./github-search";
+import { hfModelsConnector } from "./hf-models";
 import { hfPapersConnector } from "./hf-papers";
 import { pageMonitorConnector } from "./page-monitor";
 import { rssConnector } from "./rss";
@@ -14,6 +15,7 @@ const connectors: Record<Exclude<Method, "manual">, Connector<unknown>> = {
   rss: rssConnector as Connector<unknown>,
   arxiv: arxivConnector as Connector<unknown>,
   "hf-papers": hfPapersConnector as Connector<unknown>,
+  "hf-models": hfModelsConnector as Connector<unknown>,
   "github-search": githubSearchConnector as Connector<unknown>,
   biorxiv: biorxivConnector as Connector<unknown>,
   ctgov: ctgovConnector as Connector<unknown>,
