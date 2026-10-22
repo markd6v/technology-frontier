@@ -65,13 +65,8 @@ export const rssConnector = defineConnector({
         const signals: Record<string, number> = {};
         if (hn.points != null) signals.hn_points = hn.points;
         if (hn.comments != null) signals.hn_comments = hn.comments;
-        items.push({
-          url,
-          title,
-          publishedAt: parseDate(entry.isoDate ?? entry.pubDate),
-          authors: entry.creator ? [entry.creator] : undefined,
-          signals,
-        });
+        // No authors: dc:creator is the HN submitter, not the article's author.
+        items.push({ url, title, publishedAt: parseDate(entry.isoDate ?? entry.pubDate), signals });
         continue;
       }
 

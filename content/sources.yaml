@@ -526,3 +526,23 @@
   priority: 3
   reliability: Yearly cross-disciplinary review of where each field stands
   config: {}
+
+# --- Cross-domain discovery ---
+# Hacker News is only a selector (REQUIREMENTS §1 source policy): a story that reaches 500 points
+# brings in the page it links to, never the discussion. News, social and video links are dropped,
+# and the assessment's domains replace the placeholder below.
+
+- id: hn-500
+  name: Hacker News 500+
+  domains: [software]
+  kind: release
+  layer: product
+  method: rss
+  homepage: https://news.ycombinator.com
+  frequency: hourly
+  priority: 3
+  reliability: Stories that reached 500 points, kept only when they link to a primary page; many are off-topic and left to the assessment to drop
+  config: { url: "https://hnrss.org/newest?points=500&count=100", maxItems: 100, hn: true }
+  filter:
+    excludeTitle: ^(Ask|Tell) HN\b|\[video\]
+    excludeUrl: //([^/]*\.)?(nytimes\.com|theverge\.com|bloomberg\.com|reuters\.com|techcrunch\.com|arstechnica\.com|wsj\.com|ft\.com|theguardian\.com|bbc\.(com|co\.uk)|cnbc\.com|cnn\.com|nbcnews\.com|apnews\.com|npr\.org|washingtonpost\.com|wired\.com|axios\.com|semafor\.com|politico\.com|theatlantic\.com|newyorker\.com|economist\.com|businessinsider\.com|fortune\.com|forbes\.com|theinformation\.com|theregister\.com|404media\.co|engadget\.com|gizmodo\.com|zdnet\.com|9to5(mac|google)\.com|tomshardware\.com|androidauthority\.com|electrek\.co|bleepingcomputer\.com|csoonline\.com|telegraph\.co\.uk|substack\.com|medium\.com|news\.ycombinator\.com|reddit\.com|youtube\.com|youtu\.be|twitter\.com|x\.com)(/|$)

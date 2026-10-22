@@ -1,6 +1,6 @@
 # Technology Frontier Radar — Requirements
 
-Status: draft v0.5 (2026-10-20). v0.5 replaces Phase 1's triage-then-extract funnel with one assessment pass over every item (tags, scores, rank). v0.4 changes the goal from spotting commercial opportunities to a high-quality overview of recent discoveries, and replaces the starter sources with primary sources only. v0.3 dropped the daily brief. The current build is Phase 0 (sources + website) plus Phase 1's assessment and ranking. Turns the "Technology Frontier Intelligence" research brief into something buildable. The decisions from v0.1's open questions are recorded in §11.
+Status: draft v0.6 (2026-10-22). v0.6 widens release coverage: Hacker News as a selector, Hugging Face new models, more lab channels (§5.1, §11 #13). v0.5 replaces Phase 1's triage-then-extract funnel with one assessment pass over every item (tags, scores, rank). v0.4 changes the goal from spotting commercial opportunities to a high-quality overview of recent discoveries, and replaces the starter sources with primary sources only. v0.3 dropped the daily brief. The current build is Phase 0 (sources + website) plus Phase 1's assessment and ranking. Turns the "Technology Frontier Intelligence" research brief into something buildable. The decisions from v0.1's open questions are recorded in §11.
 
 ---
 
@@ -10,7 +10,7 @@ One person (the owner, a software engineer) wants a **high-quality overview of r
 
 The site collects new items from a fixed set of primary sources, sorts them by domain and layer, and shows them as a browsable, filterable feed. Later phases add LLM enrichment, a weekly overview of developments and a monthly review of where each field stands.
 
-**Source policy:** only primary sources — peer-reviewed journals, curated preprints, lab research posts and official release channels. No general tech news, commentary, business, funding or market coverage. Where a primary source mixes in other posts (customer stories, partnerships, policy), the registry filters them out by feed category or title.
+**Source policy:** only primary sources — peer-reviewed journals, curated preprints, lab research posts and official release channels. No general tech news, commentary, business, funding or market coverage. Where a primary source mixes in other posts (customer stories, partnerships, policy), the registry filters them out by feed category or title. One exception is a **selector**: Hacker News (stories with 500+ points) is used only to pick pages worth reading. The item is the page the story links to, never the discussion, and links to news, social and video sites are dropped.
 
 **Success, measured after 4 weeks of real use:**
 - The owner checks the site on at least 15 of 20 working days, and catching up on a domain takes ≤15 minutes.
@@ -145,7 +145,26 @@ Each phase ships something usable on its own. Don't start a phase until the one 
 | 23 | npj Quantum Information | Quantum | scientific | RSS | drops corrections |
 | 24 | Stanford Emerging Tech Review | Broad | scientific | Manual (yearly) | — |
 
-Totals: **16 feed/API**, **4 page monitor**, **4 manual**. Exact endpoints and filter patterns live in `content/sources.yaml`.
+Added on 2026-10-22: lab engineering blogs, release channels for labs without one above, and two cross-company release signals.
+
+| # | Source | Domain | Layer | Method | Filter |
+|---|---|---|---|---|---|
+| 25 | Anthropic Engineering | AI/Software | engineering | Page monitor (`/engineering`, posts under `/research/`) | — |
+| 26 | Thinking Machines Lab | AI | scientific | RSS | — |
+| 27 | Engineering at Meta | AI/Compute/Software/Comms | engineering | RSS | drops award and hiring posts |
+| 28 | NVIDIA Technical Blog | Compute/AI | engineering | RSS | drops product pitches ("AI factory", DSX, Blueprint) |
+| 29 | Cloudflare Blog | Compute/Software/Security/Comms | engineering | RSS | drops partnership, advisory and acquisition posts |
+| 30 | GitHub Engineering | Software | engineering | RSS (engineering category) | — |
+| 31 | Jane Street Tech Blog | Software/AI | engineering | RSS | drops intern round-ups and puzzles |
+| 32 | Trail of Bits | Security | engineering | RSS | — |
+| 33 | Google Gemini models | AI | product | RSS | category Gemini models; drops tips and round-ups |
+| 34 | Meta AI releases | AI | product | RSS (Meta newsroom) | category Technology and Innovation; launch titles only |
+| 35 | xAI News | AI | product | Page monitor | drops marketplace, plan, partnership and use-case posts |
+| 36 | Mistral AI News | AI | product | RSS | drops funding, partnership, acquisition and event posts |
+| 37 | Hacker News 500+ | Any | product | RSS (hnrss.org), selector only | drops news, social and video links, Ask/Tell HN |
+| 38 | Hugging Face new models | AI | product | JSON API | original models (no base model) under 30 days old with 150+ likes |
+
+Totals: **29 feed/API**, **6 page monitor**, **4 manual**. Exact endpoints and filter patterns live in `content/sources.yaml`.
 
 Also confirmed reachable, for Phase 3: OpenAlex API, GitHub API, PyPI Stats API, npm downloads API.
 
@@ -276,6 +295,7 @@ Must work at phone width (the owner reads it on a phone). Owner-only controls (r
 | 10 | Tagging and ranking | (2026-10-20) One assessment pass over every item with Claude Opus 5.5 instead of small-model triage plus extraction: real volume is ~30 items/day, not ~200. Topics come from a fixed list. The assessment's domains replace the source's. Off-topic items are ranked low, not hidden |
 | 11 | Free assessment for now | (2026-10-20) Run assessment locally through the Claude Code CLI on the owner's subscription, scheduled with launchd, writing to the production DB. Switch to the API by setting `ANTHROPIC_API_KEY` in Vercel |
 | 12 | Navigation and default views | (2026-10-20) Domain is the main way in: the home page is a per-domain digest of the week and each domain page is its own feed, so the busiest domain (AI, about half the volume) can't bury the rest. Lists default to Top, not Newest, and hide off-topic and low-scoring items behind "Show all". Source and source type are no longer feed filters; each source has its own page |
+| 13 | Wider release coverage | (2026-10-22) Releases are caught without listing every company: Hacker News stories with 500+ points act as a selector (only the linked primary page is kept), and Hugging Face models with 150+ likes catch open-weight releases from any lab. Closed-model labs (Google, Meta, xAI, Mistral) get their own release channels. Off-topic picks are left to the assessment to hide. Reverses #9 for Hacker News, Cloudflare and NVIDIA |
 
 ## 12. Open questions
 

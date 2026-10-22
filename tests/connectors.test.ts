@@ -45,6 +45,7 @@ describe("rss", () => {
     expect(items).toHaveLength(3);
     expect(items[0].url).not.toMatch(/news\.ycombinator\.com/);
     expect(items[0].signals?.hn_points).toBeGreaterThan(0);
+    expect(items.every((i) => i.authors === undefined)).toBe(true);
   });
 
   it("parses hnrss descriptions", () => {
