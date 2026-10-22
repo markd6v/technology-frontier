@@ -541,6 +541,103 @@
   reliability: Yearly cross-disciplinary review of where each field stands
   config: {}
 
+# --- People ---
+# Blogs of people on the /people list (REQUIREMENTS §5.3), only where their own technical write-ups
+# outnumber commentary. Their opinion posts are left to the assessment to drop.
+
+- id: simon-willison
+  name: Simon Willison
+  domains: [ai, software]
+  kind: press
+  layer: engineering
+  method: rss
+  homepage: https://simonwillison.net
+  frequency: daily
+  priority: 2
+  reliability: Hands-on tests of new models and tools, usually on release day; long-form entries only, not his link blog
+  config: { url: "https://simonwillison.net/atom/entries/", maxItems: 15 }
+  filter:
+    excludeTitle: \blive ?blog\b
+
+- id: karpathy-blog
+  name: Andrej Karpathy
+  domains: [ai]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://karpathy.github.io
+  frequency: weekly
+  priority: 2
+  reliability: Rare, in-depth technical posts with code; his essays on karpathy.bearblog.dev are left out
+  config: { url: "https://karpathy.github.io/feed.xml", maxItems: 3 }
+
+- id: scott-aaronson
+  name: Shtetl-Optimized (Scott Aaronson)
+  domains: [quantum]
+  kind: press
+  layer: scientific
+  method: rss
+  homepage: https://scottaaronson.blog
+  frequency: daily
+  priority: 3
+  reliability: Checks quantum-advantage and complexity claims against the evidence; only posts tagged Quantum or Complexity
+  config: { url: "https://scottaaronson.blog/?feed=rss2", maxItems: 10 }
+  filter:
+    categories: [Quantum, Complexity]
+
+- id: martin-kleppmann
+  name: Martin Kleppmann
+  domains: [software, security]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://martin.kleppmann.com
+  frequency: weekly
+  priority: 3
+  reliability: Distributed systems, local-first software and formal verification research; posts a few times a year
+  config: { url: "https://feeds.feedburner.com/martinkl?format=xml", maxItems: 5 }
+  filter:
+    excludeTitle: \b(year in review|book review|podcast\w*)\b
+
+- id: matthew-green
+  name: A Few Thoughts on Cryptographic Engineering (Matthew Green)
+  domains: [security]
+  kind: press
+  layer: engineering
+  method: rss
+  homepage: https://blog.cryptographyengineering.com
+  frequency: weekly
+  priority: 2
+  reliability: A cryptographer's analyses of new protocols, attacks and privacy claims
+  config: { url: "https://blog.cryptographyengineering.com/feed/", maxItems: 10 }
+
+- id: vitalik-buterin
+  name: Vitalik Buterin
+  domains: [fintech, security]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://vitalik.eth.limo
+  frequency: weekly
+  priority: 3
+  reliability: Cryptography and Ethereum scaling write-ups, mixed with essays on politics and culture
+  config: { url: "https://vitalik.eth.limo/feed.xml", maxItems: 10 }
+
+- id: derek-lowe
+  name: In the Pipeline (Derek Lowe)
+  domains: [biotech, materials]
+  kind: press
+  layer: scientific
+  method: rss
+  homepage: https://www.science.org/blogs/pipeline
+  frequency: daily
+  priority: 2
+  reliability: A medicinal chemist's read of new chemistry, drug and clinical results; separates real findings from hype. Funding and time-off posts filtered out
+  # The 1 MB feed takes 7–15 s and sometimes stalls past the 20 s timeout; the failure backoff retries it.
+  config: { url: "https://www.science.org/blogs/pipeline/feed", maxItems: 20 }
+  filter:
+    excludeTitle: \b(vacation|time off|funding|opinion|crisis)\b
+
 # --- Cross-domain discovery ---
 # Hacker News is only a selector (REQUIREMENTS §1 source policy): a story that reaches 500 points
 # brings in the page it links to, never the discussion. News, social and video links are dropped,
