@@ -90,6 +90,23 @@
   filter:
     includeTitle: ^(Introducing|Announcing) Claude\b|\b(Claude|Opus|Sonnet|Haiku|Fable) \d
 
+- id: anthropic-engineering
+  name: Anthropic Engineering
+  domains: [ai, software]
+  kind: research
+  layer: engineering
+  method: page-monitor
+  homepage: https://www.anthropic.com/engineering
+  frequency: daily
+  priority: 1
+  reliability: First-hand write-ups on building agents, tools and infrastructure, including postmortems
+  # The listing lives at /engineering but the posts themselves are served under /research/.
+  config:
+    listUrl: https://www.anthropic.com/engineering
+    linkSelector: 'a[href^="/research/"]'
+    allowPrefix: https://www.anthropic.com/research/
+    minLinks: 5
+
 - id: google-deepmind
   name: Google DeepMind
   domains: [ai, robotics]
