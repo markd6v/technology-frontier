@@ -107,6 +107,18 @@
     allowPrefix: https://www.anthropic.com/research/
     minLinks: 5
 
+- id: thinking-machines
+  name: Thinking Machines Lab
+  domains: [ai]
+  kind: research
+  layer: scientific
+  method: rss
+  homepage: https://thinkingmachines.ai/blog/
+  frequency: daily
+  priority: 2
+  reliability: Infrequent, in-depth lab research posts with code; results are self-reported
+  config: { url: "https://thinkingmachines.ai/blog/index.xml", maxItems: 20 }
+
 - id: google-deepmind
   name: Google DeepMind
   domains: [ai, robotics]
@@ -175,6 +187,74 @@
   filter:
     excludeTitle: ^security updates|stable kernels?|weekly edition|election|documentary|obituary
 
+- id: meta-engineering
+  name: Engineering at Meta
+  domains: [ai, compute, software, comms]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://engineering.fb.com
+  frequency: daily
+  priority: 1
+  reliability: First-hand write-ups on Meta's AI training, data centers, networking and developer infrastructure
+  config: { url: "https://engineering.fb.com/feed/", maxItems: 30 }
+  filter:
+    excludeTitle: \b(award\w*|careers?|hiring|interns?)\b
+
+- id: nvidia-developer
+  name: NVIDIA Technical Blog
+  domains: [compute, ai]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://developer.nvidia.com/blog
+  frequency: daily
+  priority: 3
+  reliability: Kernel, inference and cluster engineering from NVIDIA; many posts promote NVIDIA products, so product pitches are filtered out
+  config: { url: "https://developer.nvidia.com/blog/feed", maxItems: 40 }
+  filter:
+    excludeTitle: \b(AI factor(y|ies)|DSX|digital twins?|blueprint|RTX Spark|now open source)\b|^(Achieve|Build|Lower|Code, Test)\b
+
+- id: cloudflare-blog
+  name: Cloudflare Blog
+  domains: [compute, software, security, comms]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://blog.cloudflare.com
+  frequency: daily
+  priority: 2
+  reliability: Engineering deep dives, internet measurements and incident write-ups; partnership and advisory posts filtered out
+  config: { url: "https://blog.cloudflare.com/rss/", maxItems: 30 }
+  filter:
+    excludeTitle: \band Cloudflare\b|^Cloudflare and\b|\b(joining|partner\w*|customers?|webinar|award\w*|what you need to know|deploys protections|protecting your)\b
+
+- id: github-engineering
+  name: GitHub Engineering
+  domains: [software]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://github.blog/engineering/
+  frequency: daily
+  priority: 2
+  reliability: How GitHub builds and scales its platform, increasingly around coding agents
+  config: { url: "https://github.blog/engineering/feed/", maxItems: 20 }
+
+- id: jane-street-tech
+  name: Jane Street Tech Blog
+  domains: [software, ai]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://blog.janestreet.com
+  frequency: daily
+  priority: 3
+  reliability: Systems, OCaml and ML engineering from a trading firm; intern round-ups and puzzles filtered out
+  config: { url: "https://blog.janestreet.com/feed.xml", maxItems: 20 }
+  filter:
+    excludeTitle: interns have wrought|\bpuzzles?\b
+
 - id: project-zero
   name: Google Project Zero
   domains: [security]
@@ -186,6 +266,18 @@
   priority: 2
   reliability: Vulnerability research with full technical write-ups
   config: { url: "https://googleprojectzero.blogspot.com/feeds/posts/default?max-results=10", maxItems: 10 }
+
+- id: trail-of-bits
+  name: Trail of Bits Blog
+  domains: [security]
+  kind: research
+  layer: engineering
+  method: rss
+  homepage: https://blog.trailofbits.com
+  frequency: daily
+  priority: 2
+  reliability: Security research and tooling from audit work; some posts are opinion
+  config: { url: "https://blog.trailofbits.com/feed/", maxItems: 20 }
 
 # --- Semiconductors ---
 
